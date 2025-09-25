@@ -43,7 +43,7 @@ This project implements a sentiment classification model (positive or negative) 
 1.  **Clone the repository:**
     ```sh
     git clone [https://github.com/marcelonribeiro/sentiment_transformer.git](https://github.com/marcelonribeiro/sentiment_transformer.git)
-    cd your-repository
+    cd sentiment_transformer
     ```
 
 2.  **Create and activate a virtual environment (recommended):**
