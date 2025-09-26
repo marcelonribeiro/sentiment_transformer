@@ -112,10 +112,12 @@ class MultiHeadAttention(layers.Layer):
         assert d_model % self.num_heads == 0
         self.depth = d_model // self.num_heads
 
-        self.wq = layers.Dense(d_model)
-        self.wk = layers.Dense(d_model)
-        self.wv = layers.Dense(d_model)
-        self.dense = layers.Dense(d_model)
+    def build(self, input_shape):
+        self.wq = layers.Dense(self.d_model)
+        self.wk = layers.Dense(self.d_model)
+        self.wv = layers.Dense(self.d_model)
+        self.dense = layers.Dense(self.d_model)
+        super(MultiHeadAttention, self).build(input_shape)
 
     def get_config(self):
         config = super(MultiHeadAttention, self).get_config()
@@ -181,12 +183,14 @@ class EncoderBlock(layers.Layer):
         self.dff = dff
         self.rate = rate
 
-        self.mha = MultiHeadAttention(d_model, num_heads)
-        self.ffn = point_wise_feed_forward_network(d_model, dff)
+    def build(self, input_shape):
+        self.mha = MultiHeadAttention(self.d_model, self.num_heads)
+        self.ffn = point_wise_feed_forward_network(self.d_model, self.dff)
         self.layernorm1 = layers.LayerNormalization(epsilon=1e-6)
         self.layernorm2 = layers.LayerNormalization(epsilon=1e-6)
-        self.dropout1 = layers.Dropout(rate)
-        self.dropout2 = layers.Dropout(rate)
+        self.dropout1 = layers.Dropout(self.rate)
+        self.dropout2 = layers.Dropout(self.rate)
+        super(EncoderBlock, self).build(input_shape)
 
     def get_config(self):
         config = super(EncoderBlock, self).get_config()

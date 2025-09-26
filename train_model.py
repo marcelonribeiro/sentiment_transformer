@@ -72,13 +72,13 @@ print(f"Training: {len(train_texts)}, Validation: {len(val_texts)}, Test: {len(t
 
 # --- 3. Loading Pre-trained Embeddings ---
 print("Loading pre-trained embeddings (fastText)...")
-embedding_file = 'data/cc.pt.300.vec'
+embedding_file = 'data/cc.pt.300.bin'
 try:
-    # Load pre-trained Portuguese word vectors
-    word_vectors = KeyedVectors.load_word2vec_format(embedding_file)
+    word_vectors = KeyedVectors.load(embedding_file)
     embedding_dim = word_vectors.vector_size
 except FileNotFoundError:
     print(f"Error: Embedding file not found at '{embedding_file}'.")
+    print("Run the 'convert_embeddings.py' script first to generate the binary file.")
     exit()
 
 # Vectorization and Embedding Matrix Creation
@@ -176,12 +176,34 @@ os.makedirs('models', exist_ok=True)
 # Save the trained model
 transformer_classifier.save('models/sentiment_transformer.keras')
 
-# Save the vectorization layer's configuration and weights
-with open('models/vectorizer.pkl', 'wb') as f:
-    pickle.dump({'config': vectorize_layer.get_config(), 'weights': vectorize_layer.get_weights()}, f)
+# Save the vectorization layer's vocabulary
+with open('models/vectorizer_vocab.pkl', 'wb') as f:
+    vocab = vectorize_layer.get_vocabulary()
+    pickle.dump(vocab, f)
 
-# Save the test set for consistent evaluation
-with open('models/test_data.pkl', 'wb') as f:
-    pickle.dump({'texts': test_texts, 'labels': test_labels}, f)
+print("Preparing and saving the final test dataset...")
 
-print("Model, vectorizer, and test data saved successfully in the 'models/' folder.")
+# Filter out any test samples that might be empty after vectorization
+filtered_test_texts = []
+filtered_test_labels = []
+for text, label in zip(test_texts, test_labels):
+    vectorized_text = vectorize_layer([text])
+    if tf.math.count_nonzero(vectorized_text) > 0:
+        filtered_test_texts.append(text)
+        filtered_test_labels.append(label)
+
+if len(test_texts) != len(filtered_test_texts):
+    print(
+        f"Removed {len(test_texts) - len(filtered_test_texts)} invalid samples from the test set.")
+
+# Create the final, vectorized tf.data.Dataset for testing
+test_dataset = tf.data.Dataset.from_tensor_slices((filtered_test_texts, filtered_test_labels))
+test_dataset = test_dataset.map(vectorize_text).batch(BATCH_SIZE)
+
+test_dataset.save('models/test_dataset_tf')
+
+# Save the filtered labels separately for easy metric calculation
+with open('models/test_labels.pkl', 'wb') as f:
+    pickle.dump(np.array(filtered_test_labels), f)
+
+print("Model, vectorizer vocabulary, and pre-processed test dataset saved successfully.")
