@@ -1,5 +1,3 @@
-# 02_evaluate_model.py
-
 import os
 import pickle
 import numpy as np
@@ -81,7 +79,7 @@ def vectorize_text(text, label):
 test_dataset = tf.data.Dataset.from_tensor_slices((filtered_test_texts, filtered_test_labels))
 test_dataset = test_dataset.map(vectorize_text).batch(BATCH_SIZE)
 
-# --- 3. Prediction and Evaluation ---
+# Prediction and Evaluation
 print("Making predictions...")
 # Predict probabilities for the test set
 y_pred_probs = transformer_classifier.predict(test_dataset).flatten()
@@ -103,7 +101,7 @@ print(f"Recall:   {recall:.4f}")
 print(f"F1-Score: {f1:.4f}")
 print(f"AUC:      {auc_val:.4f}")
 
-# --- 4. Visualizations ---
+# Visualizations
 print("\nGenerating visualizations...")
 
 # Confusion Matrix

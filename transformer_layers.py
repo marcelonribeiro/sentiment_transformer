@@ -9,9 +9,21 @@ class PositionalEncoding(layers.Layer):
     the order of the sequence. This layer adds a unique positional encoding vector
     to each embedding.
     """
-    def __init__(self, position, d_model):
-        super(PositionalEncoding, self).__init__()
+    def __init__(self, position, d_model, **kwargs):
+        super(PositionalEncoding, self).__init__(**kwargs)
+        # Salva os argumentos para o get_config
+        self.position = position
+        self.d_model = d_model
         self.pos_encoding = self.positional_encoding(position, d_model)
+
+    def get_config(self):
+        # Retorna um dicionário com os parâmetros para recriar a camada
+        config = super(PositionalEncoding, self).get_config()
+        config.update({
+            'position': self.position,
+            'd_model': self.d_model,
+        })
+        return config
 
     def get_angles(self, position, i, d_model):
         """Calculates the angle rates for the positional encoding formula."""
@@ -38,11 +50,15 @@ class PositionalEncoding(layers.Layer):
 
     def call(self, inputs):
         """Adds the positional encoding to the input tensor."""
-        # The input might be a RaggedTensor from the embedding layer with mask_zero=True.
-        # To add the positional encoding, we need to work with a dense tensor.
-        dense_inputs = inputs
+        if isinstance(inputs, tf.SparseTensor):
+            dense_inputs = tf.sparse.to_dense(inputs)
+        elif isinstance(inputs, tf.RaggedTensor):
+            dense_inputs = inputs.to_tensor()
+        else:
+            dense_inputs = inputs
 
-        return dense_inputs + self.pos_encoding[:, :tf.shape(dense_inputs)[1], :]
+        seq_len = tf.shape(dense_inputs)[1]
+        return dense_inputs + self.pos_encoding[:, :seq_len, :]
 
 
 def scaled_dot_product_attention(q, k, v, mask):
@@ -87,10 +103,12 @@ class MultiHeadAttention(layers.Layer):
     This layer splits the query, key, and value into multiple heads, applies scaled
     dot-product attention independently on each head, and then concatenates the results.
     """
-    def __init__(self, d_model, num_heads):
-        super(MultiHeadAttention, self).__init__()
-        self.num_heads = num_heads
+
+    def __init__(self, d_model, num_heads, **kwargs):
+        super(MultiHeadAttention, self).__init__(**kwargs)
         self.d_model = d_model
+        self.num_heads = num_heads
+
         assert d_model % self.num_heads == 0
         self.depth = d_model // self.num_heads
 
@@ -98,6 +116,14 @@ class MultiHeadAttention(layers.Layer):
         self.wk = layers.Dense(d_model)
         self.wv = layers.Dense(d_model)
         self.dense = layers.Dense(d_model)
+
+    def get_config(self):
+        config = super(MultiHeadAttention, self).get_config()
+        config.update({
+            'd_model': self.d_model,
+            'num_heads': self.num_heads,
+        })
+        return config
 
     def split_heads(self, x, batch_size):
         """
@@ -147,16 +173,30 @@ class EncoderBlock(layers.Layer):
     It consists of a multi-head attention sub-layer and a point-wise feed-forward
     network sub-layer. Each sub-layer has a residual connection followed by layer normalization.
     """
-    def __init__(self, d_model, num_heads, dff, rate=0.1):
-        super(EncoderBlock, self).__init__()
+
+    def __init__(self, d_model, num_heads, dff, rate=0.1, **kwargs):
+        super(EncoderBlock, self).__init__(**kwargs)
+        self.d_model = d_model
+        self.num_heads = num_heads
+        self.dff = dff
+        self.rate = rate
+
         self.mha = MultiHeadAttention(d_model, num_heads)
         self.ffn = point_wise_feed_forward_network(d_model, dff)
-
         self.layernorm1 = layers.LayerNormalization(epsilon=1e-6)
         self.layernorm2 = layers.LayerNormalization(epsilon=1e-6)
-
         self.dropout1 = layers.Dropout(rate)
         self.dropout2 = layers.Dropout(rate)
+
+    def get_config(self):
+        config = super(EncoderBlock, self).get_config()
+        config.update({
+            'd_model': self.d_model,
+            'num_heads': self.num_heads,
+            'dff': self.dff,
+            'rate': self.rate,
+        })
+        return config
 
     def call(self, x, training=None, mask=None):
         # --- First Sub-layer: Multi-Head Attention ---

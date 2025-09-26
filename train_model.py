@@ -1,5 +1,3 @@
-# 01_train_model.py
-
 import os
 import pickle
 import numpy as np
@@ -10,10 +8,10 @@ from sklearn.model_selection import train_test_split
 from tensorflow.keras.callbacks import EarlyStopping
 from gensim.models import KeyedVectors
 
-# Import custom Transformer layers from the local file
+# Import custom Transformer layers
 from transformer_layers import PositionalEncoding, EncoderBlock
 
-# --- 1. Data Loading and Preparation ---
+# Data Loading and Preparation
 print("Loading and preparing data...")
 try:
     # Load the dataset
@@ -83,7 +81,7 @@ except FileNotFoundError:
     print(f"Error: Embedding file not found at '{embedding_file}'.")
     exit()
 
-# --- 4. Vectorization and Embedding Matrix Creation ---
+# Vectorization and Embedding Matrix Creation
 print("Creating and adapting the vectorization layer...")
 MAX_VOCAB_SIZE = 20000
 MAX_SEQUENCE_LENGTH = 200
@@ -104,7 +102,7 @@ for word, i in word_index.items():
         embedding_matrix[i] = word_vectors[word]
 print("Embedding matrix created.")
 
-# --- 5. Transformer Model Construction and Compilation ---
+# Transformer Model Construction and Compilation
 print("Building the Transformer model...")
 def create_transformer_classifier(vocab_size, num_layers, d_model, num_heads, dff,
                                   max_seq_len, embedding_matrix, rate=0.1):
@@ -147,7 +145,7 @@ transformer_classifier.compile(
 )
 transformer_classifier.summary()
 
-# --- 6. Model Training ---
+# Model Training
 print("\nStarting training...")
 # Use early stopping to prevent overfitting
 early_stopping = EarlyStopping(monitor='val_loss', patience=3, restore_best_weights=True)
@@ -170,7 +168,7 @@ history = transformer_classifier.fit(
 )
 print("Training finished.")
 
-# --- 7. Saving Artifacts ---
+# Saving Artifacts
 print("Saving artifacts for evaluation...")
 # Create the 'models' directory if it doesn't exist
 os.makedirs('models', exist_ok=True)
