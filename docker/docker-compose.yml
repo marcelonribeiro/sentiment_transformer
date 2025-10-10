@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  postgres-app-db:
+    image: postgres:18
+
+    # Dá um nome fixo ao contêiner para fácil identificação.
+    container_name: sentiment_app_postgres
+
+    # Passa as variáveis do arquivo .env para dentro do contêiner.
+    # A imagem do Postgres usa essas variáveis para criar o banco e o usuário na primeira inicialização.
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER_APP}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD_APP}
+      - POSTGRES_DB=${POSTGRES_DB_APP}
+
+    # Mapeia a porta do contêiner (sempre 5432) para uma porta na sua máquina.
+    # Isso permite que sua aplicação local se conecte ao banco dentro do Docker.
+    ports:
+      - "${POSTGRES_PORT_APP}:5432"
+
+    # Garante que os dados do banco de dados persistam mesmo se o contêiner for removido.
+    volumes:
+      - app_db_data:/var/lib/postgresql/data
+
+    # Garante que o contêiner reinicie automaticamente se falhar.
+    restart: always
+
+# Declara o volume para garantir que o Docker o gerencie.
+volumes:
+  app_db_data:

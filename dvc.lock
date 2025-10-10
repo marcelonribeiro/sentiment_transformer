@@ -1,0 +1,22 @@
+schema: '2.0'
+stages:
+  scrape_news:
+    cmd: python src/data/scraper.py --sitemap-folder data/raw/sitemaps_infomoney
+      --days 30 --output data/raw/infomoney_news.csv
+    deps:
+    - path: data/raw/sitemaps_infomoney
+      hash: md5
+      md5: 61c0bf062d6dfe0740398f81ad806dd6.dir
+      size: 6208204
+      nfiles: 14
+    - path: src/data/scraper.py
+      hash: md5
+      md5: d8336a5f563ebdc4f3da602354d736f2
+      size: 11856
+      isexec: true
+    outs:
+    - path: data/raw/infomoney_news.csv
+      hash: md5
+      md5: bfda82479f6eb1dbfdae9a5a798c4447
+      size: 2790250
+      isexec: true

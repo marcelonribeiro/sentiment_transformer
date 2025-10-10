@@ -1,0 +1,6 @@
+outs:
+- md5: 1efd31465eff1091bf0f6cc5be3f7dcf
+  size: 4520554048
+  isexec: true
+  hash: md5
+  path: cc.pt.300.vec
