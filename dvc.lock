@@ -6,8 +6,8 @@ stages:
     deps:
     - path: data/raw/sitemaps_infomoney
       hash: md5
-      md5: 61c0bf062d6dfe0740398f81ad806dd6.dir
-      size: 6208204
+      md5: 69a6ea38a1a3c428489903832bdf280c.dir
+      size: 6538176
       nfiles: 14
     - path: src/data/scraper.py
       hash: md5
@@ -17,6 +17,226 @@ stages:
     outs:
     - path: data/raw/infomoney_news.csv
       hash: md5
-      md5: bfda82479f6eb1dbfdae9a5a798c4447
-      size: 2790250
+      md5: 776bba8a9ae3cd0edc9816d7752104f9
+      size: 2501666
+      isexec: true
+  fetch_stock_codes:
+    cmd: python src/data/get_stock_codes.py --output data/raw/stock_codes.json
+    deps:
+    - path: src/data/get_stock_codes.py
+      hash: md5
+      md5: 9cdd69209a91c619d8f00aa5588ae5c8
+      size: 3467
+      isexec: true
+    outs:
+    - path: data/raw/stock_codes.json
+      hash: md5
+      md5: 1aa8cbd036d6b57752b3a51e75b421e9
+      size: 7677
+      isexec: true
+  prepare_embeddings:
+    cmd: python src/ml/convert_embeddings.py --input data/raw/cc.pt.300.vec 
+      --output data/embeddings/cc.pt.300.bin
+    deps:
+    - path: data/raw/cc.pt.300.vec
+      hash: md5
+      md5: 1efd31465eff1091bf0f6cc5be3f7dcf
+      size: 4520554048
+      isexec: true
+    - path: src/ml/convert_embeddings.py
+      hash: md5
+      md5: 45fbafafb4bbbab96b9bb65ad2a3517c
+      size: 2216
+      isexec: true
+    outs:
+    - path: data/embeddings/cc.pt.300.bin
+      hash: md5
+      md5: 5f09f02c943e735025d769d68f1c2c44
+      size: 60607848
+      isexec: true
+    - path: data/embeddings/cc.pt.300.bin.vectors.npy
+      hash: md5
+      md5: 72d7bb9f1234f2fb52e088c301bb00b5
+      size: 2400000128
+      isexec: true
+  process_data:
+    cmd: python -m src.ml.process_data --input-csv data/raw/B2W-Reviews01.csv 
+      --output-dir data/processed
+    deps:
+    - path: data/raw/B2W-Reviews01.csv
+      hash: md5
+      md5: 3d6bb9c7546fe32bb4dff53eaeedafda
+      size: 49453175
+      isexec: true
+    - path: src/ml/process_data.py
+      hash: md5
+      md5: 4bc2e029d07f3a8932c09147e112ba5c
+      size: 3130
+      isexec: true
+    outs:
+    - path: data/processed
+      hash: md5
+      md5: 38d74288b2025b994e9fc74d8ab153bc.dir
+      size: 10850135
+      nfiles: 3
+  train:
+    cmd: python -m src.ml.train --train-csv data/processed/train.csv --val-csv 
+      data/processed/val.csv --test-csv data/processed/test.csv --embeddings-bin
+      data/embeddings/cc.pt.300.bin --artifacts-dir artifacts/training
+    deps:
+    - path: data/embeddings/cc.pt.300.bin
+      hash: md5
+      md5: 5f09f02c943e735025d769d68f1c2c44
+      size: 60607848
+      isexec: true
+    - path: data/processed
+      hash: md5
+      md5: 38d74288b2025b994e9fc74d8ab153bc.dir
+      size: 10850135
+      nfiles: 3
+    - path: src/config.py
+      hash: md5
+      md5: 26ec3c85ff3d9aeff83402f360790834
+      size: 1196
+      isexec: true
+    - path: src/ml/model_wrapper.py
+      hash: md5
+      md5: 6c3b7c7fc3b27eab10a8d29560cc2a8b
+      size: 1568
+      isexec: true
+    - path: src/ml/train.py
+      hash: md5
+      md5: cafd89a87e02b2f060cfa8ca79bf7679
+      size: 7859
+      isexec: true
+    - path: src/ml/transformer_layers.py
+      hash: md5
+      md5: 9346304db6f0564f11c7b1703967c075
+      size: 8384
+      isexec: true
+    outs:
+    - path: artifacts/training
+      hash: md5
+      md5: 5f93d387804f0d79203b88f5a7de5450.dir
+      size: 58000194
+      nfiles: 6
+  evaluate:
+    cmd: python -m src.ml.evaluate --model-path 
+      artifacts/training/sentiment_transformer.keras --test-dataset-path 
+      artifacts/training/test_dataset_tf --test-labels-path 
+      artifacts/training/test_labels.pkl --metrics-path metrics/scores.json 
+      --cm-path metrics/confusion_matrix.png --roc-path metrics/roc_curve.png
+    deps:
+    - path: artifacts/training
+      hash: md5
+      md5: 5f93d387804f0d79203b88f5a7de5450.dir
+      size: 58000194
+      nfiles: 6
+    - path: src/ml/evaluate.py
+      hash: md5
+      md5: 10542d8d35890ab8192bebb63d1461bc
+      size: 4049
+      isexec: true
+    - path: src/ml/transformer_layers.py
+      hash: md5
+      md5: 9346304db6f0564f11c7b1703967c075
+      size: 8384
+      isexec: true
+    outs:
+    - path: metrics/confusion_matrix.png
+      hash: md5
+      md5: 1863f8110672c573614f05543a0242a3
+      size: 21823
+      isexec: true
+    - path: metrics/roc_curve.png
+      hash: md5
+      md5: 6cf5839cc87ae643669dfe92e35aa9ca
+      size: 37878
+      isexec: true
+    - path: metrics/scores.json
+      hash: md5
+      md5: 8b6080c38796932e5290483f04ffc11c
+      size: 174
+      isexec: true
+  train_baseline:
+    cmd: python -m src.ml.train_baseline --train-csv data/processed/train.csv 
+      --val-csv data/processed/val.csv --test-csv data/processed/test.csv 
+      --embeddings-bin data/embeddings/cc.pt.300.bin --artifacts-dir 
+      artifacts/baseline
+    deps:
+    - path: data/embeddings/cc.pt.300.bin
+      hash: md5
+      md5: 5f09f02c943e735025d769d68f1c2c44
+      size: 60607848
+      isexec: true
+    - path: data/processed
+      hash: md5
+      md5: 38d74288b2025b994e9fc74d8ab153bc.dir
+      size: 10850135
+      nfiles: 3
+    - path: src/config.py
+      hash: md5
+      md5: 8d0d1619ec53e3c56170d84f4e3982a7
+      size: 1336
+      isexec: true
+    - path: src/ml/model_wrapper.py
+      hash: md5
+      md5: 72dbb6b4fd90768196912e3e2004c030
+      size: 2333
+      isexec: true
+    - path: src/ml/train_baseline.py
+      hash: md5
+      md5: eedece265dd7d41a2c6ad70a41a842b6
+      size: 8109
+      isexec: true
+    - path: src/ml/transformer_layers.py
+      hash: md5
+      md5: 629f309e6ec03031a5c6d40d16d23ca0
+      size: 8508
+      isexec: true
+    outs:
+    - path: artifacts/baseline
+      hash: md5
+      md5: fc45099ae047afa92d87c644c5bead59.dir
+      size: 40420402
+      nfiles: 6
+  evaluate_baseline:
+    cmd: python -m src.ml.evaluate --model-path 
+      artifacts/baseline/sentiment_transformer.keras --test-dataset-path 
+      artifacts/baseline/test_dataset_tf --test-labels-path 
+      artifacts/baseline/test_labels.pkl --metrics-path 
+      metrics/baseline_scores.json --cm-path 
+      metrics/baseline_confusion_matrix.png --roc-path 
+      metrics/baseline_roc_curve.png
+    deps:
+    - path: artifacts/baseline
+      hash: md5
+      md5: fc45099ae047afa92d87c644c5bead59.dir
+      size: 40420402
+      nfiles: 6
+    - path: src/ml/evaluate.py
+      hash: md5
+      md5: 10542d8d35890ab8192bebb63d1461bc
+      size: 4049
+      isexec: true
+    - path: src/ml/transformer_layers.py
+      hash: md5
+      md5: 629f309e6ec03031a5c6d40d16d23ca0
+      size: 8508
+      isexec: true
+    outs:
+    - path: metrics/baseline_confusion_matrix.png
+      hash: md5
+      md5: 550ce9d1b2533218e461a6d3e055dd94
+      size: 24801
+      isexec: true
+    - path: metrics/baseline_roc_curve.png
+      hash: md5
+      md5: 9154a78ca1140a40dbc7c495d9760dce
+      size: 40452
+      isexec: true
+    - path: metrics/baseline_scores.json
+      hash: md5
+      md5: b167959a14dec5ad4d55a8e92c507875
+      size: 175
       isexec: true

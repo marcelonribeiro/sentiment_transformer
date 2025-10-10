@@ -118,3 +118,19 @@ The `transformer_layers.py` file contains the custom implementations of the laye
 -   `PositionalEncoding`: Adds positional information to the input embeddings, allowing the model to understand the order of words.
 -   `MultiHeadAttention`: Allows the model to focus on different parts of the input sequence simultaneously.
 -   `EncoderBlock`: The fundamental building block of the Encoder, composed of a Multi-Head Attention layer and a Feed-Forward network, with residual connections and layer normalization.
+
+dvc e git está tudo como deve ser?
+deixar get_stock_codes todo em inglês, convert embeddings
+docker completo
+GitHub Actions para implantar no AWS EC2 tranquilo (e outra opção para o CI/CD funcionar em server próprio)
+
+source set_env.sh > seta variaveis de ambiente
+mlflow ui
+airflow standalone
+
+source set_env.sh
+python -m src.api.app
+gunicorn --workers 4 --bind 0.0.0.0:8000 "src.api.app:app"
+
+source set_env.sh
+streamlit run src/dashboard/dashboard_app.py

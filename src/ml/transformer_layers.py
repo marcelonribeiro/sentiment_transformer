@@ -11,13 +11,11 @@ class PositionalEncoding(layers.Layer):
     """
     def __init__(self, position, d_model, **kwargs):
         super(PositionalEncoding, self).__init__(**kwargs)
-        # Salva os argumentos para o get_config
         self.position = position
         self.d_model = d_model
         self.pos_encoding = self.positional_encoding(position, d_model)
 
     def get_config(self):
-        # Retorna um dicionário com os parâmetros para recriar a camada
         config = super(PositionalEncoding, self).get_config()
         config.update({
             'position': self.position,

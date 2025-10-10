@@ -1,0 +1,122 @@
+stages:
+  scrape_news:
+    cmd: >-
+      python src/data/scraper.py
+      --sitemap-folder data/raw/sitemaps_infomoney
+      --days 30
+      --output data/raw/infomoney_news.csv
+    deps:
+      - src/data/scraper.py
+      - data/raw/sitemaps_infomoney
+    outs:
+      - data/raw/infomoney_news.csv
+
+  fetch_stock_codes:
+    cmd: python src/data/get_stock_codes.py --output data/raw/stock_codes.json
+    deps:
+      - src/data/get_stock_codes.py
+    outs:
+      - data/raw/stock_codes.json
+
+  prepare_embeddings:
+    cmd: >-
+      python src/ml/convert_embeddings.py
+      --input data/raw/cc.pt.300.vec
+      --output data/embeddings/cc.pt.300.bin
+    deps:
+      - src/ml/convert_embeddings.py
+      - data/raw/cc.pt.300.vec
+    outs:
+      - data/embeddings/cc.pt.300.bin
+      - data/embeddings/cc.pt.300.bin.vectors.npy
+
+  process_data:
+    cmd: >-
+      python -m src.ml.process_data
+      --input-csv data/raw/B2W-Reviews01.csv
+      --output-dir data/processed
+    deps:
+      - src/ml/process_data.py
+      - data/raw/B2W-Reviews01.csv
+    outs:
+      - data/processed
+
+  train:
+    cmd: >-
+      python -m src.ml.train
+      --train-csv data/processed/train.csv
+      --val-csv data/processed/val.csv
+      --test-csv data/processed/test.csv
+      --embeddings-bin data/embeddings/cc.pt.300.bin
+      --artifacts-dir artifacts/training
+    deps:
+      - src/ml/train.py
+      - src/ml/transformer_layers.py
+      - src/ml/model_wrapper.py
+      - src/config.py
+      - data/processed
+      - data/embeddings/cc.pt.300.bin
+    outs:
+      - artifacts/training
+
+  evaluate:
+    cmd: >-
+      python -m src.ml.evaluate
+      --model-path artifacts/training/sentiment_transformer.keras
+      --test-dataset-path artifacts/training/test_dataset_tf
+      --test-labels-path artifacts/training/test_labels.pkl
+      --metrics-path metrics/scores.json
+      --cm-path metrics/confusion_matrix.png
+      --roc-path metrics/roc_curve.png
+    deps:
+      - src/ml/evaluate.py
+      - src/ml/transformer_layers.py
+      - artifacts/training
+    metrics:
+      - metrics/scores.json:
+          cache: false
+    plots:
+      - metrics/confusion_matrix.png:
+          cache: false
+      - metrics/roc_curve.png:
+          cache: false
+
+  train_baseline:
+    cmd: >-
+      python -m src.ml.train_baseline
+      --train-csv data/processed/train.csv
+      --val-csv data/processed/val.csv
+      --test-csv data/processed/test.csv
+      --embeddings-bin data/embeddings/cc.pt.300.bin
+      --artifacts-dir artifacts/baseline
+    deps:
+      - src/ml/train_baseline.py
+      - src/ml/transformer_layers.py
+      - src/ml/model_wrapper.py
+      - src/config.py
+      - data/processed
+      - data/embeddings/cc.pt.300.bin
+    outs:
+      - artifacts/baseline
+
+  evaluate_baseline:
+    cmd: >-
+      python -m src.ml.evaluate
+      --model-path artifacts/baseline/sentiment_transformer.keras
+      --test-dataset-path artifacts/baseline/test_dataset_tf
+      --test-labels-path artifacts/baseline/test_labels.pkl
+      --metrics-path metrics/baseline_scores.json
+      --cm-path metrics/baseline_confusion_matrix.png
+      --roc-path metrics/baseline_roc_curve.png
+    deps:
+      - src/ml/evaluate.py
+      - src/ml/transformer_layers.py
+      - artifacts/baseline
+    metrics:
+      - metrics/baseline_scores.json:
+          cache: false
+    plots:
+      - metrics/baseline_confusion_matrix.png:
+          cache: false
+      - metrics/baseline_roc_curve.png:
+          cache: false
