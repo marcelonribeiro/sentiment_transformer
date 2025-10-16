@@ -1,0 +1,34 @@
+# Python virtual environment and cache
+.venv
+venv
+__pycache__
+
+# IDE and OS specific files
+.idea
+.vscode
+*.DS_Store
+
+# DVC's internal cache is huge and not needed in the image
+.dvc/cache
+.dvc/tmp
+
+# Ignore local Airflow operational files to prevent contamination
+airflow/logs/
+airflow/plugins/
+airflow/airflow.db
+airflow/airflow.cfg
+airflow/webserver_config.py
+airflow/simple_auth_manager_passwords.json.generated
+
+# Ignore large raw data files explicitly. The .dvc pointers will be copied.
+data/raw/B2W-Reviews01.csv
+data/raw/cc.pt.300.vec
+data/processed/
+data/embeddings/
+data/raw/sitemaps_infomoney/
+data/raw/infomoney_news.csv
+data/raw/stock_codes.json
+
+artifacts/
+metrics/
+mlruns/

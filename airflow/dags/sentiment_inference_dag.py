@@ -7,7 +7,6 @@ import pendulum
 import pandas as pd
 import json
 import os
-from pathlib import Path
 
 from airflow.providers.standard.operators.bash import BashOperator
 from sqlalchemy import create_engine, func
@@ -94,8 +93,6 @@ def calculate_weighted_sentiment(text: str, ticker: str, sentiment_model,
 
 def setup_database():
     """Ensures that the target table exists in the database."""
-    import sys
-    sys.path.insert(0, str(Path(settings.SENTIMENT_PROJECT_DIR) / "src"))
     create_tables_if_not_exist()
 
 def load_local_dvc_data(**kwargs):
@@ -280,7 +277,7 @@ with DAG(
             f"cd {settings.SENTIMENT_PROJECT_DIR} && "
 
             "echo '--- Running DVC data acquisition stages ---' && "
-            "dvc repro --force scrape_news fetch_stock_codes && "
+            "dvc repro --force scrape_articles fetch_stock_codes -v && "
 
             "echo '--- Pushing new raw data to DVC remote ---' && "
 

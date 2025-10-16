@@ -3,7 +3,7 @@ version: '3.8'
 services:
   postgres-app-db:
     image: postgres:18
-    container_name: sentiment_app_postgres
+    container_name: sentiment_app_postgres_local
     environment:
       - POSTGRES_USER=${POSTGRES_USER_APP}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD_APP}
@@ -16,4 +16,4 @@ services:
 
 volumes:
   app_db_data:
-    name: sentimentb3stocks_app_db_data
+    name: sentimentb3stocks_app_db_local_data

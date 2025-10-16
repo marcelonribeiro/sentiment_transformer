@@ -119,10 +119,8 @@ The `transformer_layers.py` file contains the custom implementations of the laye
 -   `MultiHeadAttention`: Allows the model to focus on different parts of the input sequence simultaneously.
 -   `EncoderBlock`: The fundamental building block of the Encoder, composed of a Multi-Head Attention layer and a Feed-Forward network, with residual connections and layer normalization.
 
-dvc e git está tudo como deve ser?
-deixar get_stock_codes todo em inglês, convert embeddings
 docker completo
-GitHub Actions para implantar no AWS EC2 tranquilo (e outra opção para o CI/CD funcionar em server próprio)
+GitHub Actions para implantar no AWS EC2 tranquilo (Dá um olhada no jenkins)
 
 source set_env.sh > seta variaveis de ambiente
 mlflow ui
@@ -134,3 +132,8 @@ gunicorn --workers 4 --bind 0.0.0.0:8000 "src.api.app:app"
 
 source set_env.sh
 streamlit run src/dashboard/dashboard_app.py
+
+# find out password airflow:
+docker-compose exec airflow-standalone cat ./airflow/simple_auth_manager_passwords.json.generated
+
+sitemaps_infomoney.dvc não é mais só arquivo de origem, mas ele apssa a ser um output. Ele é rastreado pelo dvc?

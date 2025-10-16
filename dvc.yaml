@@ -1,7 +1,18 @@
 stages:
-  scrape_news:
+  download_sitemaps:
     cmd: >-
       python src/data/scraper.py
+      --action download
+      --sitemap-folder data/raw/sitemaps_infomoney
+    deps:
+      - src/data/scraper.py
+    outs:
+      - data/raw/sitemaps_infomoney
+
+  scrape_articles:
+    cmd: >-
+      python src/data/scraper.py
+      --action scrape
       --sitemap-folder data/raw/sitemaps_infomoney
       --days 30
       --output data/raw/infomoney_news.csv

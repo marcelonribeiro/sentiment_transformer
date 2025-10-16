@@ -1,0 +1,87 @@
+services:
+
+  postgres-app:
+    image: postgres:18
+    container_name: postgres_app_db
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB_APP}
+      - POSTGRES_USER=${POSTGRES_USER_APP}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD_APP}
+    volumes:
+      - pgdata_app:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER_APP} -d ${POSTGRES_DB_APP}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  airflow-standalone:
+    build: .
+    container_name: airflow_standalone
+    command: airflow standalone
+    env_file: [".env"]
+    volumes:
+      - airflow_data:/app/airflow
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "airflow jobs check --job-type SchedulerJob --local"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    restart: always
+
+  mlflow-server:
+    build: .
+    container_name: mlflow_server
+    command: >
+      mlflow server
+      --host 0.0.0.0 --port 5000
+      --backend-store-uri ${APP_DATABASE_URL}
+      --default-artifact-root /app/mlruns
+    ports: ["5000:5000"]
+    volumes:
+      - mlruns_data:/app/mlruns
+    env_file: [".env"]
+    depends_on:
+      postgres-app: { condition: service_healthy }
+    restart: always
+
+  api:
+    build: .
+    container_name: sentiment_api
+    command: >
+      gunicorn --workers 4 --bind 0.0.0.0:8000 "src.api.app:app"
+    ports: ["8000:8000"]
+    depends_on:
+      postgres-app: { condition: service_healthy }
+    restart: always
+
+  dashboard:
+    build: .
+    container_name: sentiment_dashboard
+    command: >
+      streamlit run src/dashboard/dashboard_app.py --server.port 8501 --server.address 0.0.0.0
+    ports: ["8501:8501"]
+    restart: always
+
+  nginx:
+    image: nginx:latest
+    container_name: reverse_proxy
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./docker/nginx/templates:/etc/nginx/templates
+    environment:
+      - DOMAIN_NAME=${DOMAIN_NAME}
+    command: /bin/bash -c "envsubst '$${DOMAIN_NAME}' < /etc/nginx/templates/nginx.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
+    depends_on:
+      - airflow-standalone
+      - mlflow-server
+      - api
+      - dashboard
+    restart: always
+
+volumes:
+  pgdata_app:
+  airflow_data:
+  mlruns_data:

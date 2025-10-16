@@ -7,6 +7,73 @@ from pathlib import Path
 import xml.etree.ElementTree as ET
 import argparse
 
+# Import Playwright for downloading sitemaps
+from playwright.sync_api import sync_playwright, Error
+
+
+# Sitemap Download Function using Playwright
+def download_latest_sitemaps(output_dir: Path, start_number: int = 519, max_retries: int = 3, retry_delay: int = 5):
+    """
+    Downloads sitemap XML files with a robust retry mechanism for each file.
+    This will overwrite existing files to ensure they are always up-to-date.
+    """
+    output_dir.mkdir(parents=True, exist_ok=True)
+    print(f"\n--- Method 0: Downloading latest sitemaps to '{output_dir}' ---")
+
+    with sync_playwright() as p:
+        api_context = p.request.new_context()
+        sitemap_number = start_number
+
+        while True:
+            url = f"https://www.infomoney.com.br/post-sitemap{sitemap_number}.xml"
+            download_successful = False
+
+            # --- NEW: Inner retry loop for each individual sitemap ---
+            for attempt in range(max_retries):
+                try:
+                    print(f"    -> Attempting to download: {url} (try {attempt + 1}/{max_retries})... ", end="")
+
+                    # Increased timeout for more resilience
+                    response = api_context.get(url, timeout=60000)
+
+                    if response.ok:
+                        content = response.text()
+                        file_name = f"post-sitemap{sitemap_number}.xml"
+                        file_path = output_dir / file_name
+                        with open(file_path, 'w', encoding='utf-8') as f:
+                            f.write(content)
+                        print(f"Success! Saved as '{file_name}'")
+                        download_successful = True
+                        break  # Exit the INNER retry loop on success
+
+                    elif response.status == 404:
+                        print("Not Found (404). Assuming end of sitemaps.")
+                        # This is a final state, not an error, so we stop the whole process.
+                        api_context.dispose()
+                        print("\nSitemap download process finished.")
+                        return  # Exit the function entirely
+
+                    else:
+                        print(f"Failed with status {response.status}. Retrying in {retry_delay}s...")
+                        time.sleep(retry_delay)
+
+                except Error as e:
+                    message = "Timeout" if "timeout" in e.message.lower() else "Connection error"
+                    print(f"{message}! Retrying in {retry_delay}s...")
+                    time.sleep(retry_delay)
+
+            # After all retries, if the download still failed, stop everything.
+            if not download_successful:
+                print(f"\nAll retries failed for {url}. Aborting the download process.")
+                break  # Exit the OUTER while loop
+
+            # If successful, move to the next sitemap
+            sitemap_number += 1
+            time.sleep(1)  # Polite delay between successful downloads
+
+        api_context.dispose()
+        print("\nSitemap download process finished.")
+
 
 def make_request(url, headers, timeout=45, max_retries=3, retry_delay=5):
     """
@@ -102,20 +169,19 @@ def get_links_from_api():
     return links_with_dates
 
 
-def get_links_from_local_sitemaps(sitemap_folder, cutoff_date):
+def get_links_from_local_sitemaps(sitemap_folder: Path, cutoff_date):
     """
     Parses all .xml files in a local folder to extract article URLs and their
     last modification date, pre-filtering by the cutoff_date.
     """
     print("\n--- Method 3: Reading and pre-filtering links from local sitemap files ---")
     links_with_dates = {}
-    sitemap_dir = Path(sitemap_folder)
 
-    if not sitemap_dir.is_dir():
+    if not sitemap_folder.is_dir():
         print(f"  -> WARNING: Directory '{sitemap_folder}' not found. Skipping.")
         return links_with_dates
 
-    xml_files = list(sitemap_dir.glob("*.xml"))
+    xml_files = list(sitemap_folder.glob("*.xml"))
     if not xml_files:
         print(f"  -> WARNING: No .xml files found in '{sitemap_folder}'.")
         return links_with_dates
@@ -224,12 +290,13 @@ def scrape_and_filter_articles(links_with_dates, days_ago=30):
     return pd.DataFrame(all_news_data)
 
 
-def main(output_path, days, sitemap_folder):
+def run_scrape_action(output_path: Path, days: int, sitemap_folder: Path):
     """
-    Main function to orchestrate the scraping process.
+    Orchestrates the second part of the process: collecting links from all
+    sources (including the downloaded sitemaps) and scraping the articles.
     """
+    print("\n--- Running Scrape Action ---")
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
-
     browser_headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
@@ -251,43 +318,45 @@ def main(output_path, days, sitemap_folder):
         if df_news is not None and not df_news.empty:
             df_news = df_news.sort_values(by='publication_date', ascending=False, na_position='last').reset_index(
                 drop=True)
-
-            print("\n--- Scraping Complete! ---")
-            print(f"Total of {len(df_news)} news articles collected within the date range.")
-            print("\n--- Data Sample (First 5 articles): ---")
-            print(df_news.head())
-
-            try:
-                df_news.to_csv(output_path, index=False, encoding='utf-8-sig')
-                print(f"\nData successfully saved to file: '{output_path}'")
-            except Exception as e:
-                print(f"\nError saving the CSV file: {e}")
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            df_news.to_csv(output_path, index=False, encoding='utf-8-sig')
+            print(f"\nScraping complete! Data successfully saved to file: '{output_path}'")
         else:
             print(f"\nNo news articles were found within the last {days} days after filtering.")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Scrape market news from the InfoMoney website.")
+    parser = argparse.ArgumentParser(description="Download sitemaps and scrape market news from InfoMoney.")
 
+    # ===================================================================
+    # NEW: Argument to control which action the script performs
+    # ===================================================================
     parser.add_argument(
-        "--output",
-        type=str,
+        "--action",
+        choices=['download', 'scrape'],
         required=True,
-        help="Path to save the output CSV file."
+        help="The action to perform: 'download' sitemaps or 'scrape' articles."
     )
-    parser.add_argument(
-        "--days",
-        type=int,
-        default=30,
-        help="Number of past days to scrape for articles. Default is 30."
-    )
-    parser.add_argument(
-        "--sitemap-folder",
-        type=str,
-        default="data/sitemaps_infomoney",
-        help="Folder where local sitemap .xml files are stored. Default is 'data/sitemaps_infomoney'."
-    )
+    parser.add_argument("--output", type=str, help="Path to save the output CSV file (required for 'scrape' action).")
+    parser.add_argument("--days", type=int, default=30, help="Number of past days to scrape for articles.")
+    parser.add_argument("--sitemap-folder", type=str, default="data/raw/sitemaps_infomoney",
+                        help="Folder to download/store sitemap files.")
 
     args = parser.parse_args()
 
-    main(output_path=args.output, days=args.days, sitemap_folder=args.sitemap_folder)
+    # --- Execute the chosen action ---
+    if args.action == 'download':
+        print("Action: Download Sitemaps")
+        download_latest_sitemaps(output_dir=Path(args.sitemap_folder))
+        print("\nDownload action finished.")
+
+    elif args.action == 'scrape':
+        if not args.output:
+            parser.error("--output is required for the 'scrape' action.")
+        print("Action: Scrape Articles")
+        run_scrape_action(
+            output_path=Path(args.output),
+            days=args.days,
+            sitemap_folder=Path(args.sitemap_folder)
+        )
+        print("\nScrape action finished.")

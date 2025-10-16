@@ -20,11 +20,18 @@ with DAG(
         # (from requirements.txt) are already installed.
         bash_command=(
             f"cd {settings.SENTIMENT_PROJECT_DIR} && "
-            "echo '--- DVC PULL ---' && "
-            "dvc pull && "
-            "echo '--- DVC REPRO EVALUATE (and its dependencies) ---' && "
-            "dvc repro evaluate && "
-            "echo '--- DVC PUSH ---' && "
+            # Pull only the raw data dependencies needed to start the pipeline.
+            # This avoids the checkout error with pipeline outputs.
+            "echo '--- DVC PULLING RAW DATA DEPENDENCIES ---' && "
+            # "dvc pull data/raw/B2W-Reviews01.csv.dvc data/raw/cc.pt.300.vec.dvc -v && "
+
+            # 2. Run the pipeline from scratch. 'dvc repro' will generate
+            #    the 'data/processed' and 'artifacts' directories.
+            "echo '--- DVC REPRODUCING PIPELINE ---' && "
+            "dvc repro evaluate --pull -v && "
+
+            # 3. Push the results (new artifacts and metrics) back to S3.
+            "echo '--- DVC PUSHING RESULTS ---' && "
             "dvc push"
         ),
     )

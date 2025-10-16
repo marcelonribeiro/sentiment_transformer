@@ -6,27 +6,27 @@ stages:
     deps:
     - path: data/raw/sitemaps_infomoney
       hash: md5
-      md5: 69a6ea38a1a3c428489903832bdf280c.dir
-      size: 6538176
-      nfiles: 14
+      md5: 2507d250b9c5f26eb6b3595be01dd22b.dir
+      size: 7025460
+      nfiles: 15
     - path: src/data/scraper.py
       hash: md5
-      md5: d8336a5f563ebdc4f3da602354d736f2
-      size: 11856
+      md5: 2cac39f4558805efc1427f263ea35f10
+      size: 14243
       isexec: true
     outs:
     - path: data/raw/infomoney_news.csv
       hash: md5
-      md5: 776bba8a9ae3cd0edc9816d7752104f9
-      size: 2501666
+      md5: 7e832cbff4e0f0fd0312e7be1d77b0ff
+      size: 2712269
       isexec: true
   fetch_stock_codes:
     cmd: python src/data/get_stock_codes.py --output data/raw/stock_codes.json
     deps:
     - path: src/data/get_stock_codes.py
       hash: md5
-      md5: 9cdd69209a91c619d8f00aa5588ae5c8
-      size: 3467
+      md5: 02a914b9382a5c489ed9a5d6cc1ee93d
+      size: 3427
       isexec: true
     outs:
     - path: data/raw/stock_codes.json
@@ -45,13 +45,13 @@ stages:
       isexec: true
     - path: src/ml/convert_embeddings.py
       hash: md5
-      md5: 45fbafafb4bbbab96b9bb65ad2a3517c
-      size: 2216
+      md5: 346ed1c89536c69888203d0be6526699
+      size: 2061
       isexec: true
     outs:
     - path: data/embeddings/cc.pt.300.bin
       hash: md5
-      md5: 5f09f02c943e735025d769d68f1c2c44
+      md5: 1721dfbb19dac1ea9047990e4ec9abd8
       size: 60607848
       isexec: true
     - path: data/embeddings/cc.pt.300.bin.vectors.npy
@@ -86,7 +86,7 @@ stages:
     deps:
     - path: data/embeddings/cc.pt.300.bin
       hash: md5
-      md5: 5f09f02c943e735025d769d68f1c2c44
+      md5: 1721dfbb19dac1ea9047990e4ec9abd8
       size: 60607848
       isexec: true
     - path: data/processed
@@ -96,8 +96,8 @@ stages:
       nfiles: 3
     - path: src/config.py
       hash: md5
-      md5: 26ec3c85ff3d9aeff83402f360790834
-      size: 1196
+      md5: 4538a1632e3d5e40899bc472e7c94fcc
+      size: 1215
       isexec: true
     - path: src/ml/model_wrapper.py
       hash: md5
@@ -117,7 +117,7 @@ stages:
     outs:
     - path: artifacts/training
       hash: md5
-      md5: 5f93d387804f0d79203b88f5a7de5450.dir
+      md5: 6a1e7e08b15ab2b836ff4306f194d04c.dir
       size: 58000194
       nfiles: 6
   evaluate:
@@ -129,7 +129,7 @@ stages:
     deps:
     - path: artifacts/training
       hash: md5
-      md5: 5f93d387804f0d79203b88f5a7de5450.dir
+      md5: 6a1e7e08b15ab2b836ff4306f194d04c.dir
       size: 58000194
       nfiles: 6
     - path: src/ml/evaluate.py
@@ -145,18 +145,18 @@ stages:
     outs:
     - path: metrics/confusion_matrix.png
       hash: md5
-      md5: 1863f8110672c573614f05543a0242a3
-      size: 21823
+      md5: 4c0aa7984768bcac7a7c0482f19d3444
+      size: 21865
       isexec: true
     - path: metrics/roc_curve.png
       hash: md5
-      md5: 6cf5839cc87ae643669dfe92e35aa9ca
-      size: 37878
+      md5: de979cf15fa59c0792a56288cb1fa0f6
+      size: 38058
       isexec: true
     - path: metrics/scores.json
       hash: md5
-      md5: 8b6080c38796932e5290483f04ffc11c
-      size: 174
+      md5: ce92b81b47a7647d3b27dd4092f8099a
+      size: 175
       isexec: true
   train_baseline:
     cmd: python -m src.ml.train_baseline --train-csv data/processed/train.csv 
@@ -166,7 +166,7 @@ stages:
     deps:
     - path: data/embeddings/cc.pt.300.bin
       hash: md5
-      md5: 5f09f02c943e735025d769d68f1c2c44
+      md5: 1721dfbb19dac1ea9047990e4ec9abd8
       size: 60607848
       isexec: true
     - path: data/processed
@@ -176,29 +176,29 @@ stages:
       nfiles: 3
     - path: src/config.py
       hash: md5
-      md5: 8d0d1619ec53e3c56170d84f4e3982a7
-      size: 1336
+      md5: 4538a1632e3d5e40899bc472e7c94fcc
+      size: 1215
       isexec: true
     - path: src/ml/model_wrapper.py
       hash: md5
-      md5: 72dbb6b4fd90768196912e3e2004c030
-      size: 2333
+      md5: 6c3b7c7fc3b27eab10a8d29560cc2a8b
+      size: 1568
       isexec: true
     - path: src/ml/train_baseline.py
       hash: md5
-      md5: eedece265dd7d41a2c6ad70a41a842b6
-      size: 8109
+      md5: d19d75843fb12122d33f255b2c87a301
+      size: 7946
       isexec: true
     - path: src/ml/transformer_layers.py
       hash: md5
-      md5: 629f309e6ec03031a5c6d40d16d23ca0
-      size: 8508
+      md5: 9346304db6f0564f11c7b1703967c075
+      size: 8384
       isexec: true
     outs:
     - path: artifacts/baseline
       hash: md5
-      md5: fc45099ae047afa92d87c644c5bead59.dir
-      size: 40420402
+      md5: 28547191d5febd51d59ae4b8ea7bb9c0.dir
+      size: 40420304
       nfiles: 6
   evaluate_baseline:
     cmd: python -m src.ml.evaluate --model-path 
@@ -211,8 +211,8 @@ stages:
     deps:
     - path: artifacts/baseline
       hash: md5
-      md5: fc45099ae047afa92d87c644c5bead59.dir
-      size: 40420402
+      md5: 28547191d5febd51d59ae4b8ea7bb9c0.dir
+      size: 40420304
       nfiles: 6
     - path: src/ml/evaluate.py
       hash: md5
@@ -221,22 +221,57 @@ stages:
       isexec: true
     - path: src/ml/transformer_layers.py
       hash: md5
-      md5: 629f309e6ec03031a5c6d40d16d23ca0
-      size: 8508
+      md5: 9346304db6f0564f11c7b1703967c075
+      size: 8384
       isexec: true
     outs:
     - path: metrics/baseline_confusion_matrix.png
       hash: md5
-      md5: 550ce9d1b2533218e461a6d3e055dd94
-      size: 24801
+      md5: 416fc22445ce58363e1482600ba3578c
+      size: 24679
       isexec: true
     - path: metrics/baseline_roc_curve.png
       hash: md5
-      md5: 9154a78ca1140a40dbc7c495d9760dce
-      size: 40452
+      md5: ea796f3addb012f9966ce53639fd3e0f
+      size: 40218
       isexec: true
     - path: metrics/baseline_scores.json
       hash: md5
-      md5: b167959a14dec5ad4d55a8e92c507875
+      md5: 619bbcf06832f3d608190a5f65c9bc33
       size: 175
+      isexec: true
+  download_sitemaps:
+    cmd: python src/data/scraper.py --action download --sitemap-folder 
+      data/raw/sitemaps_infomoney
+    deps:
+    - path: src/data/scraper.py
+      hash: md5
+      md5: 2cacd86131156a6f2195c5f53f724331
+      size: 15662
+      isexec: true
+    outs:
+    - path: data/raw/sitemaps_infomoney
+      hash: md5
+      md5: 3f336a60a025f1d3833a162a45b840a6.dir
+      size: 6233287
+      nfiles: 14
+  scrape_articles:
+    cmd: python src/data/scraper.py --action scrape --sitemap-folder 
+      data/raw/sitemaps_infomoney --days 30 --output data/raw/infomoney_news.csv
+    deps:
+    - path: data/raw/sitemaps_infomoney
+      hash: md5
+      md5: 3f336a60a025f1d3833a162a45b840a6.dir
+      size: 6233287
+      nfiles: 14
+    - path: src/data/scraper.py
+      hash: md5
+      md5: 2cacd86131156a6f2195c5f53f724331
+      size: 15662
+      isexec: true
+    outs:
+    - path: data/raw/infomoney_news.csv
+      hash: md5
+      md5: 79976159ccf26f1a6aabaa989c50c7ae
+      size: 2809230
       isexec: true

@@ -10,7 +10,7 @@ load_dotenv(dotenv_path=env_path)
 
 class Settings:
     # Project Paths
-    SENTIMENT_PROJECT_DIR: str = os.getenv("SENTIMENT_PROJECT_DIR")
+    SENTIMENT_PROJECT_DIR: str = os.getenv("SENTIMENT_PROJECT_DIR", str(project_root))
     MLFLOW_TRACKING_URI: str = os.getenv("MLFLOW_TRACKING_URI")
 
     # Database URL

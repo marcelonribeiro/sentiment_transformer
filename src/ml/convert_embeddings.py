@@ -4,56 +4,56 @@ from gensim.models import KeyedVectors
 
 def convert_embeddings_to_binary(input_path, output_path):
     """
-    Carrega um arquivo de word embeddings no formato .vec e o salva no
-    formato binário nativo do Gensim para um carregamento mais rápido.
+    Loads a word embeddings file in .vec format and saves it in
+    Gensim's native binary format for faster loading.
     """
     input_file = Path(input_path)
     output_file = Path(output_path)
 
-    # 1. Validar se o arquivo de entrada existe
+    # Validate if the input file exists
     if not input_file.is_file():
-        print(f"ERRO: Arquivo de entrada não encontrado em '{input_file}'")
-        exit(1) # Sai com código de erro para o DVC
+        print(f"ERROR: Input file not found at '{input_file}'")
+        exit(1) # Exit with an error code for DVC
 
-    # 2. Criar o diretório de saída se ele não existir
+    # Create the output directory if it doesn't exist
     output_file.parent.mkdir(parents=True, exist_ok=True)
-    print(f"Diretório de saída '{output_file.parent}' garantido.")
+    print(f"Output directory '{output_file.parent}' ensured.")
 
-    print(f"Iniciando conversão de '{input_file}' (isso pode levar vários minutos)...")
+    print(f"Starting conversion of '{input_file}' (this may take several minutes)...")
 
-    # 3. Carregar o arquivo de texto (a parte lenta)
+    # Load the text file (the slow part)
     try:
         word_vectors = KeyedVectors.load_word2vec_format(input_file)
     except Exception as e:
-        print(f"ERRO ao carregar o arquivo de embeddings: {e}")
+        print(f"ERROR loading the embeddings file: {e}")
         exit(1)
 
-    # 4. Salvar os vetores no formato binário (rápido)
-    # O Gensim automaticamente cria o arquivo principal .bin e o arquivo .npy associado.
+    # Save the vectors in binary format (fast)
+    # Gensim automatically creates the main .bin file and the associated .npy file.
     try:
         word_vectors.save(str(output_file))
     except Exception as e:
-        print(f"ERRO ao salvar o arquivo binário: {e}")
+        print(f"ERROR saving the binary file: {e}")
         exit(1)
 
-    print(f"\nConversão completa! Arquivos binários salvos com base em: '{output_file}'")
+    print(f"\nConversion complete! Binary files saved based on: '{output_file}'")
 
 if __name__ == "__main__":
     """
-    Função principal para parsear argumentos e iniciar a conversão.
+    Main function to parse arguments and start the conversion.
     """
     parser = argparse.ArgumentParser(
-        description="Converte embeddings de texto (.vec) para o formato binário (.bin) do Gensim."
+        description="Converts text embeddings (.vec) to Gensim's binary format (.bin)."
     )
     parser.add_argument(
         "--input",
         required=True,
-        help="Caminho para o arquivo de entrada .vec."
+        help="Path to the input .vec file."
     )
     parser.add_argument(
         "--output",
         required=True,
-        help="Caminho para o arquivo de saída .bin. O arquivo .npy correspondente será criado automaticamente."
+        help="Path to the output .bin file. The corresponding .npy file will be created automatically."
     )
     args = parser.parse_args()
 
