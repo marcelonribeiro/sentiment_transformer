@@ -134,6 +134,7 @@ source set_env.sh
 streamlit run src/dashboard/dashboard_app.py
 
 # find out password airflow:
-docker-compose exec airflow-standalone cat ./airflow/simple_auth_manager_passwords.json.generated
+docker compose exec airflow-standalone cat ./airflow/simple_auth_manager_passwords.json.generated
 
-sitemaps_infomoney.dvc não é mais só arquivo de origem, mas ele apssa a ser um output. Ele é rastreado pelo dvc?
+# docker compose with gpu support
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
