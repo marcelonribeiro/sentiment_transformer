@@ -52,9 +52,9 @@ jobs:
             cat .env
 
             echo ">>> Stopping old containers (if any)..."
-            docker-compose -f docker-compose.yml -f docker-compose.gpu.yml down --remove-orphans
+            docker compose -f docker-compose.yml -f docker-compose.gpu.yml down --remove-orphans
 
             echo ">>> Building and starting new containers..."
-            docker-compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build --force-recreate
+            docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build --force-recreate
 
             echo ">>> Deployment finished!"
