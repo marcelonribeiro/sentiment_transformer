@@ -51,10 +51,11 @@ jobs:
             echo ">>> .env file created successfully on EC2 instance."
             cat .env
 
-            echo ">>> Stopping old containers (if any)..."
-            docker compose -f docker-compose.yml -f docker-compose.gpu.yml down --remove-orphans
+            echo ">>> Stopping old containers (optional but recommended)..."
+            docker compose -f docker-compose.yml down --remove-orphans
 
-            echo ">>> Building and starting new containers..."
-            docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build --force-recreate
+            echo ">>> Building and starting new containers using start.sh..."
+            chmod +x ./start.sh
+            ./start.sh --build --force-recreate
 
             echo ">>> Deployment finished!"
