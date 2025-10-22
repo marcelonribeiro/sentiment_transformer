@@ -30,8 +30,6 @@ jobs:
             echo "POSTGRES_PASSWORD_APP=${{ secrets.POSTGRES_PASSWORD_APP }}" >> .env
             echo "POSTGRES_HOST_APP=${{ secrets.POSTGRES_HOST_APP }}" >> .env
             echo "POSTGRES_PORT_APP=${{ secrets.POSTGRES_PORT_APP }}" >> .env
-            echo "AIRFLOW_USER_ADMIN=${{ secrets.AIRFLOW_USER_ADMIN }}" >> .env
-            echo "AIRFLOW_PASSWORD_ADMIN=${{ secrets.AIRFLOW_PASSWORD_ADMIN }}" >> .env
             echo "APP_DATABASE_URL=${{ secrets.APP_DATABASE_URL }}" >> .env
             echo "MLFLOW_TRACKING_USERNAME=${{ secrets.MLFLOW_TRACKING_USERNAME }}" >> .env
             echo "MLFLOW_TRACKING_PASSWORD=${{ secrets.MLFLOW_TRACKING_PASSWORD }}" >> .env
