@@ -24,8 +24,6 @@ services:
     volumes:
       - airflow_data:/app/airflow
       - mlruns_data:/app/mlruns
-    ports:
-      - "8080:8080"
     healthcheck:
       test: ["CMD-SHELL", "airflow jobs check --job-type SchedulerJob --local"]
       interval: 10s
@@ -36,15 +34,12 @@ services:
   mlflow-server:
     build: .
     container_name: mlflow_server
-    command: >
-      mlflow server
-      --host 0.0.0.0 --port 5000
-      --backend-store-uri ${APP_DATABASE_URL}
-      --default-artifact-root /app/mlruns
-    ports: ["5000:5000"]
+    command: /app/scripts/start_mlflow.sh
     volumes:
       - mlruns_data:/app/mlruns
     env_file: [".env"]
+    environment:
+      - MLFLOW_AUTH_CONFIG_PATH=/etc/mlflow/auth_config.ini
     depends_on:
       postgres-app: { condition: service_healthy }
     restart: always
@@ -54,7 +49,6 @@ services:
     container_name: sentiment_api
     command: >
       gunicorn --workers 4 --bind 0.0.0.0:8000 "src.api.app:app"
-    ports: ["8000:8000"]
     env_file: [".env"]
     depends_on:
       postgres-app: { condition: service_healthy }
@@ -65,14 +59,13 @@ services:
     container_name: sentiment_dashboard
     command: >
       streamlit run src/dashboard/dashboard_app.py --server.port 8501 --server.address 0.0.0.0
-    ports: ["8501:8501"]
     env_file: [".env"]
     restart: always
 
   nginx:
     image: nginx:latest
     container_name: reverse_proxy
-    ports: ["80:80", "443:443"]
+    ports: ["80:80"]
     volumes:
       - ./docker/nginx/templates:/etc/nginx/templates
     environment:

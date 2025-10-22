@@ -138,3 +138,21 @@ docker compose exec airflow-standalone cat ./airflow/simple_auth_manager_passwor
 
 # docker compose with gpu support
 docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
+
+# prep server
+ssh -i /caminho/para/meu-projeto-aws.pem ubuntu@SEU_ELASTIC_IP
+sudo apt-get update
+sudo apt-get install -y git docker-compose-plugin
+sudo usermod -aG docker ${USER}
+exit
+git clone https://github.com/seu-usuario/seu-repositorio.git
+cd seu-repositorio
+
+## local
+ssh-keygen -t ed25519 -C "github-actions-deploy" -f ./github_actions_key
+
+## server
+echo "COLE_A_CHAVE_PÚBLICA_AQUI" >> ~/.ssh/authorized_keys
+
+## secrets ec2 in github
+EC2_HOST, EC2_USERNAME, EC2_PRIVATE_KEY, etc

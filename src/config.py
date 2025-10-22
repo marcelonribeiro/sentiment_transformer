@@ -12,6 +12,8 @@ class Settings:
     # Project Paths
     SENTIMENT_PROJECT_DIR: str = os.getenv("SENTIMENT_PROJECT_DIR", str(project_root))
     MLFLOW_TRACKING_URI: str = os.getenv("MLFLOW_TRACKING_URI")
+    MLFLOW_TRACKING_USERNAME = os.getenv("MLFLOW_TRACKING_USERNAME")
+    MLFLOW_TRACKING_PASSWORD = os.getenv("MLFLOW_TRACKING_PASSWORD")
 
     # Database URL
     APP_DATABASE_URL: str = os.getenv("APP_DATABASE_URL")
@@ -32,6 +34,5 @@ class Settings:
     AWS_DEFAULT_REGION = os.getenv("AWS_DEFAULT_REGION")
     AWS_ACCESS_KEY_ID: str = os.getenv("AWS_ACCESS_KEY_ID")
     AWS_SECRET_ACCESS_KEY: str = os.getenv("AWS_SECRET_ACCESS_KEY")
-
 
 settings = Settings()

@@ -25,6 +25,9 @@ COPY --chown=airflow:0 requirements.txt .
 RUN pip install --no-cache-dir --break-system-packages -r requirements.txt
 RUN playwright install-deps && playwright install
 
+COPY --chown=airflow:0 scripts/start_mlflow.sh /app/scripts/start_mlflow.sh
+RUN chmod +x /app/scripts/start_mlflow.sh
+
 # 2. Copy the application source and specific required assets
 COPY --chown=airflow:0 src/ ./src/
 COPY --chown=airflow:0 airflow/dags/ ./airflow/dags/
@@ -41,7 +44,8 @@ RUN mkdir -p /app/artifacts \
              /app/data/processed \
              /app/data/embeddings \
              /app/data/raw/sitemaps_infomoney \
-             /app/mlruns && \
+             /app/mlruns \
+             /etc/mlflow && \
     touch /app/data/raw/stock_codes.json \
           /app/data/raw/infomoney_news.csv && \
     chown -R airflow:0 /app/artifacts \
@@ -51,8 +55,9 @@ RUN mkdir -p /app/artifacts \
                        /app/data/raw/sitemaps_infomoney \
                        /app/data/raw/stock_codes.json \
                        /app/data/raw/infomoney_news.csv \
-                       /app/mlruns && \
-    chmod -R u+w /app/data /app/artifacts /app/metrics /app/mlruns
+                       /app/mlruns \
+                       /etc/mlflow && \
+    chmod -R u+w /app/data /app/artifacts /app/metrics /app/mlruns /etc/mlflow
 
 # Switch to the non-root user that now owns everything
 USER airflow
