@@ -10,7 +10,30 @@ The following services are available at these paths:
 * **Dashboard:** `http://sent.strategiainvest.com.br/dashboard/`
 * **Airflow:** `http://sent.strategiainvest.com.br/airflow/`
 * **MLflow:** `http://sent.strategiainvest.com.br/mlflow/`
-* **API:** `http://sent.strategiainvest.com.br/api/v1/sentiments/summary`
+
+### API Endpoints
+
+The project includes a Flask API (`app.py`) to serve the processed sentiment data. The following endpoints are available and proxied through `http://sent.strategiainvest.com.br/api/v1/`:
+
+* **`GET /api/v1/sentiments/summary`**
+    * **Description:** Fetches the single latest sentiment score (from the "Sentiment Thermometer") for *all* tickers, sorted from most positive to most negative.
+    * **Live URL:** [http://sent.strategiainvest.com.br/api/v1/sentiments/summary](http://sent.strategiainvest.com.br/api/v1/sentiments/summary)
+
+* **`GET /api/v1/sentiment/<ticker_code>`**
+    * **Description:** Fetches the single latest sentiment score for *one specific ticker*.
+    * **Example:** [http://sent.strategiainvest.com.br/api/v1/sentiment/PETR4](http://sent.strategiainvest.com.br/api/v1/sentiment/PETR4)
+
+* **`GET /api/v1/sentiment/<ticker_code>/news`**
+    * **Description:** Fetches the detailed history of the last 3 months of news articles that were processed to calculate the sentiment for *one specific ticker*.
+    * **Example:** [http://sent.strategiainvest.com.br/api/v1/sentiment/PETR4/news](http://sent.strategiainvest.com.br/api/v1/sentiment/PETR4/news)
+
+* **`GET /api/v1/sentiment/<ticker_code>/timeseries`**
+    * **Description:** Fetches the complete historical time series of aggregated sentiment scores for *one specific ticker*, ordered by date.
+    * **Example:** [http://sent.strategiainvest.com.br/api/v1/sentiment/PETR4/timeseries](http://sent.strategiainvest.com.br/api/v1/sentiment/PETR4/timeseries)
+
+* **`GET /health`**
+    * **Description:** A simple health check endpoint to confirm the API container is running and responsive.
+    * **Live URL:** [http://sent.strategiainvest.com.br/health](http://sent.strategiainvest.com.br/health)
 
 ---
 
@@ -219,7 +242,7 @@ This project is fully containerized and can be deployed locally or on a cloud se
 
 ```bash
 # Clone the repository
-git clone [https://github.com/marcelonribeiro/sentiment_transformer.git](https://github.com/marcelonribeiro/sentiment_transformer.git)
+git clone https://github.com/marcelonribeiro/sentiment_transformer.git
 # Enter the project directory
 cd sentiment_transformer
 ```
