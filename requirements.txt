@@ -9,7 +9,7 @@ numpy==1.26.4
 
 # Data manipulation and scientific computing
 pandas==2.1.4
-scikit-learn==1.7.1
+scikit-learn==1.7.2
 
 # For loading word embeddings and plotting evaluation results
 gensim==4.3.3
@@ -43,14 +43,14 @@ streamlit==1.50.0
 plotly==6.3.1
 
 # Web requests and HTML parsing for the scraper
-aiobotocore==2.24.1
-botocore==1.39.11
-s3fs==2025.7.0
+aiobotocore==2.24.2
+botocore==1.40.18
+s3fs==2025.9.0
 psycopg2-binary==2.9.10
 requests==2.32.5
-beautifulsoup4==4.13.4
+beautifulsoup4==4.13.5
 playwright==1.55.0
-pydantic==2.11.7
+pydantic==2.11.9
 
 # Date/time handling, especially in Airflow DAGs
 pendulum==3.1.0
