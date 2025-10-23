@@ -37,7 +37,7 @@ jobs:
             echo "MLFLOW_TRACKING_URI=${{ secrets.MLFLOW_TRACKING_URI }}" >> .env
             echo "API_BASE_URL=${{ secrets.API_BASE_URL }}" >> .env
             echo "AIRFLOW__API__BASE_URL=${{ secrets.AIRFLOW__API__BASE_URL }}" >> .env
-            echo "AIRFLOW__CORE__EXECUTION_API_SERVER_URL=http://localhost:8080/airflow" >> .env
+#            echo "AIRFLOW__CORE__EXECUTION_API_SERVER_URL=http://localhost:8080" >> .env
             echo "AIRFLOW__API__SECRET_KEY='${{ secrets.AIRFLOW__API__SECRET_KEY }}'" >> .env
             echo "AIRFLOW_CONN_APP_POSTGRES_CONN=${{ secrets.AIRFLOW_CONN_APP_POSTGRES_CONN }}" >> .env
             echo "DVC_S3_URL=${{ secrets.DVC_S3_URL }}" >> .env

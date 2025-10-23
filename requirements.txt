@@ -20,7 +20,7 @@ matplotlib==3.10.6
 # ===================================================================
 # Orchestrator and its essential provider for Postgres
 # The constraint file above will manage its dependencies (like Flask, SQLAlchemy)
-apache-airflow[postgres]==3.0.6
+apache-airflow[postgres]==3.1.0
 
 # ===================================================================
 # Application - API & Dashboard
