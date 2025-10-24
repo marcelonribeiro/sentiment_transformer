@@ -21,7 +21,7 @@ fi
 cat <<EOF > "$CONFIG_FILE"
 [mlflow]
 database_uri = sqlite:///${AUTH_DB_FILE}
-default_permission = READ
+default_permission = EDIT
 admin_username = ${MLFLOW_TRACKING_USERNAME}
 admin_password = ${MLFLOW_TRACKING_PASSWORD}
 EOF
@@ -40,4 +40,5 @@ exec mlflow server \
     --host 0.0.0.0 \
     --port 5000 \
     --backend-store-uri "${APP_DATABASE_URL}" \
-    --app-name basic-auth
+    --app-name basic-auth \
+    --default-artifact-root "/app/mlruns"
