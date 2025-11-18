@@ -17,14 +17,12 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           port: ${{ secrets.EC2_PORT }}
-          script: |
-            set PROJECT_DIR="/home/marcelo/projects/sentiment_transformer"
-
+          script: |            
             echo ">>> [WSL] Pulling latest code..."
-            wsl.exe -e bash -c "cd $PROJECT_DIR && git checkout main && git pull origin main"
+            wsl.exe -e bash -c "cd /home/marcelo/projects/sentiment_transformer && git checkout main && git pull origin main"
 
             echo ">>> [WSL] Creating production .env file..."
-            wsl.exe -e bash -c "cat <<EOF > $PROJECT_DIR/.env
+            wsl.exe -e bash -c "cat <<EOF > /home/marcelo/projects/sentiment_transformer/.env
             DOMAIN_NAME=${{ secrets.DOMAIN_NAME }}
             POSTGRES_DB_APP=${{ secrets.POSTGRES_DB_APP }}
             POSTGRES_USER_APP=${{ secrets.POSTGRES_USER_APP }}
@@ -52,10 +50,9 @@ jobs:
             EOF"
 
             echo ">>> [WSL] Stopping old containers..."
-            wsl.exe -e bash -c "cd $PROJECT_DIR && docker compose down --remove-orphans"
+            wsl.exe -e bash -c "cd /home/marcelo/projects/sentiment_transformer && docker compose down --remove-orphans"
 
             echo ">>> [WSL] Building and starting new containers..."
-            # O script start.sh detecta a GPU automaticamente
-            wsl.exe -e bash -c "cd $PROJECT_DIR && chmod +x ./start.sh && ./start.sh --build --force-recreate"
+            wsl.exe -e bash -c "cd /home/marcelo/projects/sentiment_transformer && chmod +x ./start.sh && ./start.sh --build --force-recreate"
 
             echo ">>> Deployment finished!"
