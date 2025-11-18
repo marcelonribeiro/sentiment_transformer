@@ -60,19 +60,16 @@ jobs:
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           port: ${{ secrets.EC2_PORT }}
           script: |
-            PROJECT_DIR="/home/marcelo/projects/sentiment_transformer"
-            WINDOWS_USER_HOME="/mnt/c/Users/${{ secrets.EC2_USERNAME }}"
-
             echo ">>> [WSL] Pulling latest code..."
-            wsl.exe -e bash -c "cd $PROJECT_DIR && git checkout main && git pull origin main"
+            wsl.exe -e bash -c "cd /home/marcelo/projects/sentiment_transformer && git checkout main && git pull origin main"
 
             echo ">>> [WSL] Moving .env file to project folder..."
-            wsl.exe -e bash -c "mv -f $WINDOWS_USER_HOME/.env_production $PROJECT_DIR/.env"
+            wsl.exe -e bash -c "mv -f /mnt/c/Users/${{ secrets.EC2_USERNAME }}/.env_production /home/marcelo/projects/sentiment_transformer/.env"
 
             echo ">>> [WSL] Stopping old containers..."
-            wsl.exe -e bash -c "cd $PROJECT_DIR && docker compose down --remove-orphans"
+            wsl.exe -e bash -c "cd /home/marcelo/projects/sentiment_transformer && docker compose down --remove-orphans"
 
             echo ">>> [WSL] Building and starting new containers..."
-            wsl.exe -e bash -c "cd $PROJECT_DIR && chmod +x ./start.sh && ./start.sh --build --force-recreate"
+            wsl.exe -e bash -c "cd /home/marcelo/projects/sentiment_transformer && chmod +x ./start.sh && ./start.sh --build --force-recreate"
 
             echo ">>> Deployment finished!"
