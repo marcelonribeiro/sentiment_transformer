@@ -80,21 +80,7 @@ services:
       - dashboard
     restart: always
 
-  cloudflare-ddns:
-    image: oznu/cloudflare-ddns:latest
-    container_name: cloudflare_ddns
-    restart: always
-    volumes:
-      - ddns_config:/config
-    environment:
-      - API_KEY=${CF_API_TOKEN}
-      - ZONE=${CF_ZONE_NAME}
-      - SUBDOMAIN=${CF_SUBDOMAIN_NAME}
-      - PROXIED=false
-
-
 volumes:
   pgdata_app:
   airflow_data:
   mlruns_data:
-  ddns_config:

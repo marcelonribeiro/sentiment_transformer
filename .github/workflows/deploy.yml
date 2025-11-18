@@ -10,15 +10,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Deploy to EC2 instance
+      - name: Deploy to Windows/WSL instance via SSH
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_PRIVATE_KEY }}
+          port: ${{ secrets.EC2_PORT }}
           script: |
             set PROJECT_PATH=/home/marcelo/projects/sentiment_transformer
             echo ">>> [WSL] Pulling latest code..."
@@ -50,9 +48,6 @@ jobs:
             STRATEGIA_INVEST_API_USERNAME=${{ secrets.STRATEGIA_INVEST_API_USERNAME }}"
             STRATEGIA_INVEST_API_PASSWORD=${{ secrets.STRATEGIA_INVEST_API_PASSWORD }}"
             STRATEGIA_INVEST_API_BASE_URL=${{ secrets.STRATEGIA_INVEST_API_BASE_URL }}"
-            CF_API_TOKEN=${{ secrets.CF_API_TOKEN }}"
-            CF_ZONE_NAME=${{ secrets.CF_ZONE_NAME }}"
-            CF_SUBDOMAIN_NAME=${{ secrets.CF_SUBDOMAIN_NAME }}"
             EOF"
 
             echo ">>> [WSL] Stopping old containers..."
