@@ -18,11 +18,9 @@ jobs:
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           port: ${{ secrets.EC2_PORT }}
           script: |
-            # 1. Atualiza o código (usando caminho absoluto para evitar erros)
             echo ">>> [WSL] Pulling latest code..."
             wsl.exe -e bash -c "cd /home/marcelo/projects/sentiment_transformer && git checkout main && git pull origin main"
 
-            # 2. Cria o arquivo .env (Usando 'printf' para segurança e evitando problemas de aspas/multilinha do Windows)
             echo ">>> [WSL] Creating production .env file..."
             wsl.exe -e bash -c "cd /home/marcelo/projects/sentiment_transformer && \
             printf 'DOMAIN_NAME=%s\n' '${{ secrets.DOMAIN_NAME }}' > .env && \
@@ -50,11 +48,9 @@ jobs:
             printf 'STRATEGIA_INVEST_API_BASE_URL=%s\n' '${{ secrets.STRATEGIA_INVEST_API_BASE_URL }}' >> .env && \
             printf 'AIRFLOW__WEBSERVER__WTF_CSRF_TRUSTED_ORIGINS=http://localhost:8080,http://127.0.0.1:8080\n' >> .env"
 
-            # 3. Para os containers antigos
             echo ">>> [WSL] Stopping old containers..."
             wsl.exe -e bash -c "cd /home/marcelo/projects/sentiment_transformer && docker compose down --remove-orphans"
 
-            # 4. Inicia o deploy
             echo ">>> [WSL] Building and starting new containers..."
             wsl.exe -e bash -c "cd /home/marcelo/projects/sentiment_transformer && chmod +x ./start.sh && ./start.sh --build --force-recreate"
 
