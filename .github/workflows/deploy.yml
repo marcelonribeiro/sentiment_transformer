@@ -10,7 +10,49 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy to Windows/WSL instance via SSH
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create .env file locally
+        run: |
+          cat <<EOF > .env_production
+          DOMAIN_NAME=${{ secrets.DOMAIN_NAME }}
+          POSTGRES_DB_APP=${{ secrets.POSTGRES_DB_APP }}
+          POSTGRES_USER_APP=${{ secrets.POSTGRES_USER_APP }}
+          POSTGRES_PASSWORD_APP=${{ secrets.POSTGRES_PASSWORD_APP }}
+          POSTGRES_HOST_APP=postgres-app
+          POSTGRES_PORT_APP=5432
+          APP_DATABASE_URL=${{ secrets.APP_DATABASE_URL }}
+          MLFLOW_TRACKING_USERNAME=${{ secrets.MLFLOW_TRACKING_USERNAME }}
+          MLFLOW_TRACKING_PASSWORD=${{ secrets.MLFLOW_TRACKING_PASSWORD }}
+          MLFLOW_FLASK_SERVER_SECRET_KEY='${{ secrets.MLFLOW_FLASK_SERVER_SECRET_KEY }}'
+          MLFLOW_TRACKING_URI=${{ secrets.MLFLOW_TRACKING_URI }}
+          API_BASE_URL=${{ secrets.API_BASE_URL }}
+          AIRFLOW__WEBSERVER__BASE_URL=${{ secrets.AIRFLOW__WEBSERVER__BASE_URL }}
+          AIRFLOW__CORE__EXECUTION_API_SERVER_URL=http://127.0.0.1:8080/airflow/execution
+          AIRFLOW__WEBSERVER__SECRET_KEY='${{ secrets.AIRFLOW__WEBSERVER__SECRET_KEY }}'
+          AIRFLOW_CONN_APP_POSTGRES_CONN=${{ secrets.AIRFLOW_CONN_APP_POSTGRES_CONN }}
+          DVC_S3_URL=${{ secrets.DVC_S3_URL }}
+          AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION=${{ secrets.AWS_DEFAULT_REGION }}
+          STRATEGIA_INVEST_API_USERNAME=${{ secrets.STRATEGIA_INVEST_API_USERNAME }}
+          STRATEGIA_INVEST_API_PASSWORD=${{ secrets.STRATEGIA_INVEST_API_PASSWORD }}
+          STRATEGIA_INVEST_API_BASE_URL=${{ secrets.STRATEGIA_INVEST_API_BASE_URL }}
+          AIRFLOW__WEBSERVER__WTF_CSRF_TRUSTED_ORIGINS=http://localhost:8080,http://127.0.0.1:8080
+          EOF
+
+      - name: Copy .env to Windows Server
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_PRIVATE_KEY }}
+          port: ${{ secrets.EC2_PORT }}
+          source: ".env_production"
+          target: "C:/Users/${{ secrets.EC2_USERNAME }}/" # Copia para a raiz do usuário Windows
+
+      - name: Execute Deploy Commands via SSH
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -18,40 +60,19 @@ jobs:
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           port: ${{ secrets.EC2_PORT }}
           script: |
-            echo ">>> [WSL] Pulling latest code..."
-            wsl.exe -e bash -c "cd /home/marcelo/projects/sentiment_transformer && git checkout main && git pull origin main"
+            PROJECT_DIR="/home/marcelo/projects/sentiment_transformer"
+            WINDOWS_USER_HOME="/mnt/c/Users/${{ secrets.EC2_USERNAME }}"
 
-            echo ">>> [WSL] Creating production .env file..."
-            wsl.exe -e bash -c "cd /home/marcelo/projects/sentiment_transformer && \
-            printf 'DOMAIN_NAME=%s\n' '${{ secrets.DOMAIN_NAME }}' > .env && \
-            printf 'POSTGRES_DB_APP=%s\n' '${{ secrets.POSTGRES_DB_APP }}' >> .env && \
-            printf 'POSTGRES_USER_APP=%s\n' '${{ secrets.POSTGRES_USER_APP }}' >> .env && \
-            printf 'POSTGRES_PASSWORD_APP=%s\n' '${{ secrets.POSTGRES_PASSWORD_APP }}' >> .env && \
-            printf 'POSTGRES_HOST_APP=postgres-app\n' >> .env && \
-            printf 'POSTGRES_PORT_APP=5432\n' >> .env && \
-            printf 'APP_DATABASE_URL=%s\n' '${{ secrets.APP_DATABASE_URL }}' >> .env && \
-            printf 'MLFLOW_TRACKING_USERNAME=%s\n' '${{ secrets.MLFLOW_TRACKING_USERNAME }}' >> .env && \
-            printf 'MLFLOW_TRACKING_PASSWORD=%s\n' '${{ secrets.MLFLOW_TRACKING_PASSWORD }}' >> .env && \
-            printf 'MLFLOW_FLASK_SERVER_SECRET_KEY=%s\n' '${{ secrets.MLFLOW_FLASK_SERVER_SECRET_KEY }}' >> .env && \
-            printf 'MLFLOW_TRACKING_URI=%s\n' '${{ secrets.MLFLOW_TRACKING_URI }}' >> .env && \
-            printf 'API_BASE_URL=%s\n' '${{ secrets.API_BASE_URL }}' >> .env && \
-            printf 'AIRFLOW__WEBSERVER__BASE_URL=%s\n' '${{ secrets.AIRFLOW__WEBSERVER__BASE_URL }}' >> .env && \
-            printf 'AIRFLOW__CORE__EXECUTION_API_SERVER_URL=http://127.0.0.1:8080/airflow/execution\n' >> .env && \
-            printf 'AIRFLOW__WEBSERVER__SECRET_KEY=%s\n' '${{ secrets.AIRFLOW_API_SECRET_KEY }}' >> .env && \
-            printf 'AIRFLOW_CONN_APP_POSTGRES_CONN=%s\n' '${{ secrets.AIRFLOW_CONN_APP_POSTGRES_CONN }}' >> .env && \
-            printf 'DVC_S3_URL=%s\n' '${{ secrets.DVC_S3_URL }}' >> .env && \
-            printf 'AWS_ACCESS_KEY_ID=%s\n' '${{ secrets.AWS_ACCESS_KEY_ID }}' >> .env && \
-            printf 'AWS_SECRET_ACCESS_KEY=%s\n' '${{ secrets.AWS_SECRET_ACCESS_KEY }}' >> .env && \
-            printf 'AWS_DEFAULT_REGION=%s\n' '${{ secrets.AWS_DEFAULT_REGION }}' >> .env && \
-            printf 'STRATEGIA_INVEST_API_USERNAME=%s\n' '${{ secrets.STRATEGIA_INVEST_API_USERNAME }}' >> .env && \
-            printf 'STRATEGIA_INVEST_API_PASSWORD=%s\n' '${{ secrets.STRATEGIA_INVEST_API_PASSWORD }}' >> .env && \
-            printf 'STRATEGIA_INVEST_API_BASE_URL=%s\n' '${{ secrets.STRATEGIA_INVEST_API_BASE_URL }}' >> .env && \
-            printf 'AIRFLOW__WEBSERVER__WTF_CSRF_TRUSTED_ORIGINS=http://localhost:8080,http://127.0.0.1:8080\n' >> .env"
+            echo ">>> [WSL] Pulling latest code..."
+            wsl.exe -e bash -c "cd $PROJECT_DIR && git checkout main && git pull origin main"
+
+            echo ">>> [WSL] Moving .env file to project folder..."
+            wsl.exe -e bash -c "mv -f $WINDOWS_USER_HOME/.env_production $PROJECT_DIR/.env"
 
             echo ">>> [WSL] Stopping old containers..."
-            wsl.exe -e bash -c "cd /home/marcelo/projects/sentiment_transformer && docker compose down --remove-orphans"
+            wsl.exe -e bash -c "cd $PROJECT_DIR && docker compose down --remove-orphans"
 
             echo ">>> [WSL] Building and starting new containers..."
-            wsl.exe -e bash -c "cd /home/marcelo/projects/sentiment_transformer && chmod +x ./start.sh && ./start.sh --build --force-recreate"
+            wsl.exe -e bash -c "cd $PROJECT_DIR && chmod +x ./start.sh && ./start.sh --build --force-recreate"
 
             echo ">>> Deployment finished!"
