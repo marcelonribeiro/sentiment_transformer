@@ -1,4 +1,4 @@
-name: Deploy to AWS EC2
+name: Deploy to Home Server
 
 on:
   push:
@@ -18,42 +18,44 @@ jobs:
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           port: ${{ secrets.EC2_PORT }}
           script: |
-            set PROJECT_PATH=/home/marcelo/projects/sentiment_transformer
+            set PROJECT_DIR="/home/marcelo/projects/sentiment_transformer"
+
             echo ">>> [WSL] Pulling latest code..."
-            wsl.exe -e bash -c "cd %PROJECT_PATH% && git pull origin main"
+            wsl.exe -e bash -c "cd $PROJECT_DIR && git checkout main && git pull origin main"
 
             echo ">>> [WSL] Creating production .env file..."
-            wsl.exe -e bash -c "cat <<EOF > %PROJECT_PATH%/.env
-
-            DOMAIN_NAME=${{ secrets.DOMAIN_NAME }}"
-            POSTGRES_DB_APP=${{ secrets.POSTGRES_DB_APP }}"
-            POSTGRES_USER_APP=${{ secrets.POSTGRES_USER_APP }}"
-            POSTGRES_PASSWORD_APP=${{ secrets.POSTGRES_PASSWORD_APP }}"
-            POSTGRES_HOST_APP=${{ secrets.POSTGRES_HOST_APP }}"
-            POSTGRES_PORT_APP=${{ secrets.POSTGRES_PORT_APP }}"
-            APP_DATABASE_URL=${{ secrets.APP_DATABASE_URL }}"
-            MLFLOW_TRACKING_USERNAME=${{ secrets.MLFLOW_TRACKING_USERNAME }}"
-            MLFLOW_TRACKING_PASSWORD=${{ secrets.MLFLOW_TRACKING_PASSWORD }}"
-            MLFLOW_FLASK_SERVER_SECRET_KEY='${{ secrets.MLFLOW_FLASK_SERVER_SECRET_KEY }}'"
-            MLFLOW_TRACKING_URI=${{ secrets.MLFLOW_TRACKING_URI }}"
-            API_BASE_URL=${{ secrets.API_BASE_URL }}"
-            AIRFLOW__API__BASE_URL=${{ secrets.AIRFLOW__API__BASE_URL }}"
-            AIRFLOW__CORE__EXECUTION_API_SERVER_URL=http://localhost:8080/airflow/execution"
-            AIRFLOW__API__SECRET_KEY='${{ secrets.AIRFLOW__API__SECRET_KEY }}'"
-            AIRFLOW_CONN_APP_POSTGRES_CONN=${{ secrets.AIRFLOW_CONN_APP_POSTGRES_CONN }}"
-#            DVC_S3_URL=${{ secrets.DVC_S3_URL }}"
-#            AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}"
-#            AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}"
-#            AWS_DEFAULT_REGION=${{ secrets.AWS_DEFAULT_REGION }}"
-            STRATEGIA_INVEST_API_USERNAME=${{ secrets.STRATEGIA_INVEST_API_USERNAME }}"
-            STRATEGIA_INVEST_API_PASSWORD=${{ secrets.STRATEGIA_INVEST_API_PASSWORD }}"
-            STRATEGIA_INVEST_API_BASE_URL=${{ secrets.STRATEGIA_INVEST_API_BASE_URL }}"
+            wsl.exe -e bash -c "cat <<EOF > $PROJECT_DIR/.env
+            DOMAIN_NAME=${{ secrets.DOMAIN_NAME }}
+            POSTGRES_DB_APP=${{ secrets.POSTGRES_DB_APP }}
+            POSTGRES_USER_APP=${{ secrets.POSTGRES_USER_APP }}
+            POSTGRES_PASSWORD_APP=${{ secrets.POSTGRES_PASSWORD_APP }}
+            POSTGRES_HOST_APP=${{ secrets.POSTGRES_HOST_APP }}
+            POSTGRES_PORT_APP=${{ secrets.POSTGRES_PORT_APP }}
+            APP_DATABASE_URL=${{ secrets.APP_DATABASE_URL }}
+            MLFLOW_TRACKING_USERNAME=${{ secrets.MLFLOW_TRACKING_USERNAME }}
+            MLFLOW_TRACKING_PASSWORD=${{ secrets.MLFLOW_TRACKING_PASSWORD }}
+            MLFLOW_FLASK_SERVER_SECRET_KEY='${{ secrets.MLFLOW_FLASK_SERVER_SECRET_KEY }}'
+            MLFLOW_TRACKING_URI=${{ secrets.MLFLOW_TRACKING_URI }}
+            API_BASE_URL=${{ secrets.API_BASE_URL }}
+            AIRFLOW__WEBSERVER__BASE_URL=${{ secrets.AIRFLOW__WEBSERVER__BASE_URL }}
+            AIRFLOW__CORE__EXECUTION_API_SERVER_URL=http://127.0.0.1:8080/airflow/execution
+            AIRFLOW__WEBSERVER__SECRET_KEY='${{ secrets.AIRFLOW__WEBSERVER__SECRET_KEY }}'
+            AIRFLOW_CONN_APP_POSTGRES_CONN=${{ secrets.AIRFLOW_CONN_APP_POSTGRES_CONN }}
+            DVC_S3_URL=${{ secrets.DVC_S3_URL }}
+            AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            AWS_DEFAULT_REGION=${{ secrets.AWS_DEFAULT_REGION }}
+            STRATEGIA_INVEST_API_USERNAME=${{ secrets.STRATEGIA_INVEST_API_USERNAME }}
+            STRATEGIA_INVEST_API_PASSWORD=${{ secrets.STRATEGIA_INVEST_API_PASSWORD }}
+            STRATEGIA_INVEST_API_BASE_URL=${{ secrets.STRATEGIA_INVEST_API_BASE_URL }}
+            AIRFLOW__WEBSERVER__WTF_CSRF_TRUSTED_ORIGINS=http://localhost:8080,http://127.0.0.1:8080
             EOF"
 
             echo ">>> [WSL] Stopping old containers..."
-            wsl.exe -e bash -c "cd %PROJECT_PATH% && docker compose down --remove-orphans"
+            wsl.exe -e bash -c "cd $PROJECT_DIR && docker compose down --remove-orphans"
 
             echo ">>> [WSL] Building and starting new containers..."
-            wsl.exe -e bash -c "cd %PROJECT_PATH% && chmod +x ./start.sh && ./start.sh --build --force-recreate"
+            # O script start.sh detecta a GPU automaticamente
+            wsl.exe -e bash -c "cd $PROJECT_DIR && chmod +x ./start.sh && ./start.sh --build --force-recreate"
 
             echo ">>> Deployment finished!"
