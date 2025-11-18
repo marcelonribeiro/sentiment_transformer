@@ -24,8 +24,6 @@ services:
     volumes:
       - airflow_data:/app/airflow
       - mlruns_data:/app/mlruns
-      - dvc_cache:/app/.dvc/cache
-      - dvc_storage:/dvc-storage
     healthcheck:
       test: ["CMD-SHELL", "airflow jobs check --job-type SchedulerJob --local"]
       interval: 10s

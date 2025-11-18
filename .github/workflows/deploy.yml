@@ -1,4 +1,4 @@
-name: Deploy to Home Server
+name: Deploy to AWS EC2
 
 on:
   push:
@@ -13,63 +13,49 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Create .env file locally
-        run: |
-          cat <<EOF > .env_production
-          DOMAIN_NAME=${{ secrets.DOMAIN_NAME }}
-          POSTGRES_DB_APP=${{ secrets.POSTGRES_DB_APP }}
-          POSTGRES_USER_APP=${{ secrets.POSTGRES_USER_APP }}
-          POSTGRES_PASSWORD_APP=${{ secrets.POSTGRES_PASSWORD_APP }}
-          POSTGRES_HOST_APP=postgres-app
-          POSTGRES_PORT_APP=5432
-          APP_DATABASE_URL=${{ secrets.APP_DATABASE_URL }}
-          MLFLOW_TRACKING_USERNAME=${{ secrets.MLFLOW_TRACKING_USERNAME }}
-          MLFLOW_TRACKING_PASSWORD=${{ secrets.MLFLOW_TRACKING_PASSWORD }}
-          MLFLOW_FLASK_SERVER_SECRET_KEY='${{ secrets.MLFLOW_FLASK_SERVER_SECRET_KEY }}'
-          MLFLOW_TRACKING_URI=${{ secrets.MLFLOW_TRACKING_URI }}
-          API_BASE_URL=${{ secrets.API_BASE_URL }}
-          AIRFLOW__WEBSERVER__BASE_URL=${{ secrets.AIRFLOW__WEBSERVER__BASE_URL }}
-          AIRFLOW__CORE__EXECUTION_API_SERVER_URL=http://127.0.0.1:8080/airflow/execution
-          AIRFLOW__WEBSERVER__SECRET_KEY='${{ secrets.AIRFLOW__WEBSERVER__SECRET_KEY }}'
-          AIRFLOW_CONN_APP_POSTGRES_CONN=${{ secrets.AIRFLOW_CONN_APP_POSTGRES_CONN }}
-          DVC_S3_URL=${{ secrets.DVC_S3_URL }}
-          AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION=${{ secrets.AWS_DEFAULT_REGION }}
-          STRATEGIA_INVEST_API_USERNAME=${{ secrets.STRATEGIA_INVEST_API_USERNAME }}
-          STRATEGIA_INVEST_API_PASSWORD=${{ secrets.STRATEGIA_INVEST_API_PASSWORD }}
-          STRATEGIA_INVEST_API_BASE_URL=${{ secrets.STRATEGIA_INVEST_API_BASE_URL }}
-          AIRFLOW__WEBSERVER__WTF_CSRF_TRUSTED_ORIGINS=http://localhost:8080,http://127.0.0.1:8080
-          EOF
-
-      - name: Copy .env to Windows Server
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_PRIVATE_KEY }}
-          port: ${{ secrets.EC2_PORT }}
-          source: ".env_production"
-          target: "C:/Users/${{ secrets.EC2_USERNAME }}/" # Copia para a raiz do usuário Windows
-
-      - name: Execute Deploy Commands via SSH
+      - name: Deploy to EC2 instance
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_PRIVATE_KEY }}
-          port: ${{ secrets.EC2_PORT }}
           script: |
-            echo ">>> [WSL] Pulling latest code..."
-            wsl.exe -e bash -c "cd /home/marcelo/projects/sentiment_transformer && git checkout main && git pull origin main"
+            cd /home/ubuntu/sentiment_transformer
 
-            echo ">>> [WSL] Moving .env file to project folder..."
-            wsl.exe -e bash -c "mv -f /mnt/c/Users/${{ secrets.EC2_USERNAME }}/.env_production /home/marcelo/projects/sentiment_transformer/.env"
+            git pull origin main
 
-            echo ">>> [WSL] Stopping old containers..."
-            wsl.exe -e bash -c "cd /home/marcelo/projects/sentiment_transformer && docker compose down --remove-orphans"
+            echo "DOMAIN_NAME=${{ secrets.DOMAIN_NAME }}" >> .env
+            echo "POSTGRES_DB_APP=${{ secrets.POSTGRES_DB_APP }}" >> .env
+            echo "POSTGRES_USER_APP=${{ secrets.POSTGRES_USER_APP }}" >> .env
+            echo "POSTGRES_PASSWORD_APP=${{ secrets.POSTGRES_PASSWORD_APP }}" >> .env
+            echo "POSTGRES_HOST_APP=${{ secrets.POSTGRES_HOST_APP }}" >> .env
+            echo "POSTGRES_PORT_APP=${{ secrets.POSTGRES_PORT_APP }}" >> .env
+            echo "APP_DATABASE_URL=${{ secrets.APP_DATABASE_URL }}" >> .env
+            echo "MLFLOW_TRACKING_USERNAME=${{ secrets.MLFLOW_TRACKING_USERNAME }}" >> .env
+            echo "MLFLOW_TRACKING_PASSWORD=${{ secrets.MLFLOW_TRACKING_PASSWORD }}" >> .env
+            echo "MLFLOW_FLASK_SERVER_SECRET_KEY='${{ secrets.MLFLOW_FLASK_SERVER_SECRET_KEY }}'" >> .env
+            echo "MLFLOW_TRACKING_URI=${{ secrets.MLFLOW_TRACKING_URI }}" >> .env
+            echo "API_BASE_URL=${{ secrets.API_BASE_URL }}" >> .env
+            echo "AIRFLOW__API__BASE_URL=${{ secrets.AIRFLOW__API__BASE_URL }}" >> .env
+            echo "AIRFLOW__CORE__EXECUTION_API_SERVER_URL=http://localhost:8080/airflow/execution" >> .env
+            echo "AIRFLOW__API__SECRET_KEY='${{ secrets.AIRFLOW__API__SECRET_KEY }}'" >> .env
+            echo "AIRFLOW_CONN_APP_POSTGRES_CONN=${{ secrets.AIRFLOW_CONN_APP_POSTGRES_CONN }}" >> .env
+            echo "DVC_S3_URL=${{ secrets.DVC_S3_URL }}" >> .env
+            echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> .env
+            echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> .env
+            echo "AWS_DEFAULT_REGION=${{ secrets.AWS_DEFAULT_REGION }}" >> .env
+            echo "STRATEGIA_INVEST_API_USERNAME=${{ secrets.STRATEGIA_INVEST_API_USERNAME }}" >> .env
+            echo "STRATEGIA_INVEST_API_PASSWORD=${{ secrets.STRATEGIA_INVEST_API_PASSWORD }}" >> .env
+            echo "STRATEGIA_INVEST_API_BASE_URL=${{ secrets.STRATEGIA_INVEST_API_BASE_URL }}" >> .env
+            
+            echo ">>> .env file created successfully on EC2 instance."
+            cat .env
 
-            echo ">>> [WSL] Building and starting new containers..."
-            wsl.exe -e bash -c "cd /home/marcelo/projects/sentiment_transformer && chmod +x ./start.sh && ./start.sh --build --force-recreate"
+            echo ">>> Stopping old containers (optional but recommended)..."
+            docker compose -f docker-compose.yml down --remove-orphans
+
+            echo ">>> Building and starting new containers using start.sh..."
+            chmod +x ./start.sh
+            ./start.sh --build --force-recreate
 
             echo ">>> Deployment finished!"

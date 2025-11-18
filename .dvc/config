@@ -1,5 +1,4 @@
 [core]
-remote = localremote
-
-['remote "localremote"']
-url = /dvc-storage
+    remote = aws-remote
+[remote "aws-remote"]
+    url = s3://meu-airflow-dvc-repo-2025/dvc-store
