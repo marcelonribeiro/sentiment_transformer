@@ -53,7 +53,8 @@ def create_transformer_classifier(vocab_size, num_layers, d_model, num_heads, df
 
     x = tf.keras.layers.GlobalAveragePooling1D()(x)
     x = tf.keras.layers.Dropout(rate)(x)
-    outputs = tf.keras.layers.Dense(1, activation='sigmoid')(x)
+    outputs = tf.keras.layers.Dense(1, activation='sigmoid', dtype='float32')(x)
+
     return tf.keras.Model(inputs=inputs, outputs=outputs)
 
 

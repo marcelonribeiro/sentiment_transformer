@@ -55,7 +55,7 @@ def create_embedding_baseline_classifier(vocab_size, d_model, max_seq_len, embed
     x = tf.keras.layers.Dropout(rate)(x)
 
     # The final "Logistic Regression" like layer
-    outputs = tf.keras.layers.Dense(1, activation='sigmoid')(x)
+    outputs = tf.keras.layers.Dense(1, activation='sigmoid', dtype='float32')(x)
     return tf.keras.Model(inputs=inputs, outputs=outputs)
 
 
