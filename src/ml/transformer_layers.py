@@ -56,7 +56,9 @@ class PositionalEncoding(layers.Layer):
             dense_inputs = inputs
 
         seq_len = tf.shape(dense_inputs)[1]
-        return dense_inputs + self.pos_encoding[:, :seq_len, :]
+        target_dtype = dense_inputs.dtype
+        encoding_slice = tf.cast(self.pos_encoding[:, :seq_len, :], dtype=target_dtype)
+        return dense_inputs + encoding_slice
 
 
 def scaled_dot_product_attention(q, k, v, mask):
