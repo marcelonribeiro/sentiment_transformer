@@ -17,4 +17,16 @@ fi
 echo ">>> Executing: docker compose $COMPOSE_FILES up -d $@"
 docker compose $COMPOSE_FILES up -d "$@"
 
-echo ">>> Script finished."
+echo ">>> Fixing volume permissions..."
+
+sleep 5
+
+docker compose exec -u root -T airflow-standalone bash -c "
+    chown -R airflow:0 /app/.dvc/cache &&
+    chown -R airflow:0 /dvc-storage &&
+    chown -R airflow:0 /app/mlruns &&
+    chown -R airflow:0 /app/airflow &&
+    chmod -R u+w /app/.dvc/cache /dvc-storage /app/mlruns /app/airflow
+"
+
+echo ">>> Permissions fixed! System ready."
