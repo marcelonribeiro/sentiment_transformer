@@ -209,11 +209,14 @@ class EncoderBlock(layers.Layer):
         attn_output, _ = self.mha(x, x, x, mask)
         attn_output = self.dropout1(attn_output, training=training)
         # Residual connection and layer normalization
+        attn_output = tf.cast(attn_output, dtype=x.dtype)
         out1 = self.layernorm1(x + attn_output)
 
         # --- Second Sub-layer: Point-wise Feed-Forward Network ---
         ffn_output = self.ffn(out1)
         ffn_output = self.dropout2(ffn_output, training=training)
+
+        ffn_output = tf.cast(ffn_output, dtype=out1.dtype)
         # Residual connection and layer normalization
         out2 = self.layernorm2(out1 + ffn_output)
 
