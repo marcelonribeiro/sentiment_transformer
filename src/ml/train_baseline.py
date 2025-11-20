@@ -3,6 +3,24 @@ import pickle
 from pathlib import Path
 import numpy as np
 import pandas as pd
+import os
+
+# 1. Força o desligamento do XLA via código (sobrescreve o ambiente)
+os.environ['TF_XLA_FLAGS'] = '--tf_xla_enable_xla_devices=false'
+
+import tensorflow as tf
+from tensorflow.keras import mixed_precision
+
+# 2. Desabilita explicitamente o compilador JIT (que usa XLA)
+tf.config.optimizer.set_jit(False)
+
+# 3. Ativa Mixed Precision (Economiza MUITA VRAM e acelera o treino na GTX 1660)
+# Isso faz o modelo usar float16 onde possível, reduzindo o uso de memória pela metade.
+policy = mixed_precision.Policy('mixed_float16')
+mixed_precision.set_global_policy(policy)
+
+print(">>> Configurações de Memória: XLA Desativado | Mixed Precision Ativado")
+
 import tensorflow as tf
 from tensorflow.keras.callbacks import EarlyStopping
 from gensim.models import KeyedVectors

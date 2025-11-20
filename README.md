@@ -4,16 +4,16 @@ This is a comprehensive project demonstrating a full-cycle, production-ready MLO
 
 A live deployment of this project is hosted and available for viewing:
 
-**[http://sent.strategiainvest.com.br](http://sent.strategiainvest.com.br)**
+**[http://sent.strategiainvest.com.br:8080](http://sent.strategiainvest.com.br:8080)**
 
 The following services are available at these paths:
-* **Dashboard:** `http://sent.strategiainvest.com.br/dashboard/`
-* **Airflow:** `http://sent.strategiainvest.com.br/airflow/`
-* **MLflow:** `http://sent.strategiainvest.com.br/mlflow/`
+* **Dashboard:** `http://sent.strategiainvest.com.br:8080/dashboard/`
+* **Airflow:** `http://sent.strategiainvest.com.br:8080/airflow/`
+* **MLflow:** `http://sent.strategiainvest.com.br:8080/mlflow/`
 
 ### API Endpoints
 
-The project includes a Flask API (`app.py`) to serve the processed sentiment data. The following endpoints are available and proxied through `http://sent.strategiainvest.com.br/api/v1/`:
+The project includes a Flask API (`app.py`) to serve the processed sentiment data. The following endpoints are available and proxied through `http://sent.strategiainvest.com.br:8080/api/v1/`:
 
 * **`GET /api/v1/sentiments/summary`**
     * **Description:** Fetches the single latest sentiment score (from the "Sentiment Thermometer") for *all* tickers, sorted from most positive to most negative.
