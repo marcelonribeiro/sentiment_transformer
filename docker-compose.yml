@@ -80,6 +80,14 @@ services:
       - dashboard
     restart: always
 
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflare_tunnel
+    restart: always
+    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
+    depends_on:
+      - nginx
+
 volumes:
   pgdata_app:
   airflow_data:

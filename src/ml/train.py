@@ -112,11 +112,11 @@ def run_training(train_csv: Path, val_csv: Path, test_csv: Path, embeddings_bin:
         return vectorize_layer(text), label
 
     train_dataset = tf.data.Dataset.from_tensor_slices((train_texts, train_labels)).map(vectorize_text_and_label).batch(
-        32)
-    val_dataset = tf.data.Dataset.from_tensor_slices((val_texts, val_labels)).map(vectorize_text_and_label).batch(32)
+        8)
+    val_dataset = tf.data.Dataset.from_tensor_slices((val_texts, val_labels)).map(vectorize_text_and_label).batch(8)
 
     history = transformer_classifier.fit(train_dataset, epochs=20, validation_data=val_dataset,
-                                         callbacks=[early_stopping])
+                                         callbacks=[early_stopping], verbose=2)
 
     print("Training finished.")
 
