@@ -3,25 +3,8 @@ import pickle
 from pathlib import Path
 import numpy as np
 import pandas as pd
-import os
-
-# 1. Força o desligamento do XLA via código (sobrescreve o ambiente)
-os.environ['TF_XLA_FLAGS'] = '--tf_xla_enable_xla_devices=false'
-
 import tensorflow as tf
 from tensorflow.keras import mixed_precision
-
-# 2. Desabilita explicitamente o compilador JIT (que usa XLA)
-tf.config.optimizer.set_jit(False)
-
-# 3. Ativa Mixed Precision (Economiza MUITA VRAM e acelera o treino na GTX 1660)
-# Isso faz o modelo usar float16 onde possível, reduzindo o uso de memória pela metade.
-policy = mixed_precision.Policy('mixed_float16')
-mixed_precision.set_global_policy(policy)
-
-print(">>> Configurações de Memória: XLA Desativado | Mixed Precision Ativado")
-
-import tensorflow as tf
 from tensorflow.keras.callbacks import EarlyStopping
 from gensim.models import KeyedVectors
 import mlflow
@@ -30,6 +13,22 @@ import mlflow
 from src.ml.transformer_layers import PositionalEncoding, EncoderBlock
 from src.ml.model_wrapper import SentimentTransformerModel
 from src.config import settings
+
+gpus = tf.config.list_physical_devices('GPU')
+if gpus:
+    try:
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+        print(">>> GPU Memory Growth: ENABLED")
+    except RuntimeError as e:
+        print(e)
+
+policy = mixed_precision.Policy('mixed_float16')
+mixed_precision.set_global_policy(policy)
+print(">>> Mixed Precision (float16): ENABLED")
+
+tf.config.optimizer.set_jit(True)
+print(">>> XLA (JIT Compilation): ENABLED")
 
 mlflow.set_tracking_uri(settings.MLFLOW_TRACKING_URI)
 
@@ -94,6 +93,7 @@ def run_training(train_csv: Path, val_csv: Path, test_csv: Path, embeddings_bin:
     # --- 3. Model Building and Training ---
     print("Building and training the model...")
     D_MODEL, NUM_LAYERS, NUM_HEADS, DFF, DROPOUT_RATE = 300, 2, 6, 512, 0.1
+    BATCH_SIZE = 32
 
     transformer_classifier = create_transformer_classifier(
         vocab_size=MAX_VOCAB_SIZE, num_layers=NUM_LAYERS, d_model=D_MODEL,
@@ -103,7 +103,8 @@ def run_training(train_csv: Path, val_csv: Path, test_csv: Path, embeddings_bin:
     transformer_classifier.compile(
         loss=tf.keras.losses.BinaryCrossentropy(),
         optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),
-        metrics=['accuracy', tf.keras.metrics.AUC(name='auc')]
+        metrics=['accuracy', tf.keras.metrics.AUC(name='auc')],
+        jit_compile=True
     )
 
     early_stopping = EarlyStopping(monitor='val_loss', patience=3, restore_best_weights=True)
@@ -111,19 +112,29 @@ def run_training(train_csv: Path, val_csv: Path, test_csv: Path, embeddings_bin:
     def vectorize_text_and_label(text, label):
         return vectorize_layer(text), label
 
-    train_dataset = tf.data.Dataset.from_tensor_slices((train_texts, train_labels)).map(vectorize_text_and_label).batch(
-        8)
-    val_dataset = tf.data.Dataset.from_tensor_slices((val_texts, val_labels)).map(vectorize_text_and_label).batch(8)
+    train_dataset = tf.data.Dataset.from_tensor_slices((train_texts, train_labels)) \
+        .map(vectorize_text_and_label, num_parallel_calls=tf.data.AUTOTUNE) \
+        .batch(BATCH_SIZE) \
+        .prefetch(tf.data.AUTOTUNE)
 
-    history = transformer_classifier.fit(train_dataset, epochs=20, validation_data=val_dataset,
-                                         callbacks=[early_stopping], verbose=2)
+    val_dataset = tf.data.Dataset.from_tensor_slices((val_texts, val_labels)) \
+        .map(vectorize_text_and_label, num_parallel_calls=tf.data.AUTOTUNE) \
+        .batch(BATCH_SIZE) \
+        .prefetch(tf.data.AUTOTUNE)
+
+    history = transformer_classifier.fit(
+        train_dataset,
+        epochs=20,
+        validation_data=val_dataset,
+        callbacks=[early_stopping],
+        verbose=2
+    )
 
     print("Training finished.")
 
     print("\nSaving all artifacts to disk before logging to MLflow...")
     artifacts_dir.mkdir(parents=True, exist_ok=True)
 
-    # Salvar modelo, vocabulário e dataset de teste
     model_path = artifacts_dir / "sentiment_transformer.keras"
     vocab_path = artifacts_dir / "vectorizer_vocab.pkl"
     test_dataset_path = artifacts_dir / "test_dataset_tf"
@@ -138,7 +149,7 @@ def run_training(train_csv: Path, val_csv: Path, test_csv: Path, embeddings_bin:
     test_dataset_vectorized = tf.data.Dataset.from_tensor_slices(
         (vectorized_test_texts, np.array(test_labels))
     )
-    test_dataset_vectorized = test_dataset_vectorized.batch(32)
+    test_dataset_vectorized = test_dataset_vectorized.batch(BATCH_SIZE)
     test_dataset_vectorized.save(str(test_dataset_path))
 
     with open(test_labels_path, 'wb') as f:
@@ -154,7 +165,8 @@ def run_training(train_csv: Path, val_csv: Path, test_csv: Path, embeddings_bin:
         mlflow.log_params({
             "vocab_size": MAX_VOCAB_SIZE, "max_seq_len": MAX_SEQUENCE_LENGTH,
             "embedding_dim": D_MODEL, "num_layers": NUM_LAYERS,
-            "num_heads": NUM_HEADS, "dff": DFF, "dropout": DROPOUT_RATE
+            "num_heads": NUM_HEADS, "dff": DFF, "dropout": DROPOUT_RATE,
+            "batch_size": BATCH_SIZE, "mixed_precision": True, "xla": True
         })
 
         print("Logging metrics...")

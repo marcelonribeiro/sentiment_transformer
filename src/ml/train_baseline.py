@@ -3,32 +3,32 @@ import pickle
 from pathlib import Path
 import numpy as np
 import pandas as pd
-import os
-
-# 1. Força o desligamento do XLA via código (sobrescreve o ambiente)
-os.environ['TF_XLA_FLAGS'] = '--tf_xla_enable_xla_devices=false'
-
 import tensorflow as tf
 from tensorflow.keras import mixed_precision
-
-# 2. Desabilita explicitamente o compilador JIT (que usa XLA)
-tf.config.optimizer.set_jit(False)
-
-# 3. Ativa Mixed Precision (Economiza MUITA VRAM e acelera o treino na GTX 1660)
-# Isso faz o modelo usar float16 onde possível, reduzindo o uso de memória pela metade.
-policy = mixed_precision.Policy('mixed_float16')
-mixed_precision.set_global_policy(policy)
-
-print(">>> Configurações de Memória: XLA Desativado | Mixed Precision Ativado")
-
-import tensorflow as tf
 from tensorflow.keras.callbacks import EarlyStopping
 from gensim.models import KeyedVectors
 import mlflow
 
+# Project imports
 from src.ml.transformer_layers import PositionalEncoding
 from src.ml.model_wrapper import SentimentTransformerModel
 from src.config import settings
+
+gpus = tf.config.list_physical_devices('GPU')
+if gpus:
+    try:
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+        print(">>> GPU Memory Growth: ENABLED")
+    except RuntimeError as e:
+        print(e)
+
+policy = mixed_precision.Policy('mixed_float16')
+mixed_precision.set_global_policy(policy)
+print(">>> Mixed Precision (float16): ENABLED")
+
+tf.config.optimizer.set_jit(True)
+print(">>> XLA (JIT Compilation): ENABLED")
 
 mlflow.set_tracking_uri(settings.MLFLOW_TRACKING_URI)
 
@@ -46,6 +46,8 @@ def create_embedding_baseline_classifier(vocab_size, d_model, max_seq_len, embed
     )
     x = embedding_layer(inputs)
     x *= tf.math.sqrt(tf.cast(d_model, tf.float32))
+
+    # Positional Encoding is kept to be fair comparison, though less critical for averaging models
     x = PositionalEncoding(max_seq_len, d_model)(x)
     x = tf.keras.layers.Dropout(rate)(x)
 
@@ -55,6 +57,7 @@ def create_embedding_baseline_classifier(vocab_size, d_model, max_seq_len, embed
     x = tf.keras.layers.Dropout(rate)(x)
 
     # The final "Logistic Regression" like layer
+    # IMPORTANT: dtype='float32' is required for numerical stability in the output
     outputs = tf.keras.layers.Dense(1, activation='sigmoid', dtype='float32')(x)
     return tf.keras.Model(inputs=inputs, outputs=outputs)
 
@@ -62,7 +65,6 @@ def create_embedding_baseline_classifier(vocab_size, d_model, max_seq_len, embed
 def run_training(train_csv: Path, val_csv: Path, test_csv: Path, embeddings_bin: Path, artifacts_dir: Path):
     """
     Trains the baseline model and logs it to MLflow.
-    (This function is almost identical to the original train.py)
     """
     # Load pre-processed data
     print("--- Running EMBEDDING BASELINE Model Training ---")
@@ -70,6 +72,7 @@ def run_training(train_csv: Path, val_csv: Path, test_csv: Path, embeddings_bin:
     train_df = pd.read_csv(train_csv)
     val_df = pd.read_csv(val_csv)
     test_df = pd.read_csv(test_csv)
+
     train_texts, train_labels = train_df['text'].tolist(), train_df['sentiment'].tolist()
     val_texts, val_labels = val_df['text'].tolist(), val_df['sentiment'].tolist()
     test_texts, test_labels = test_df['text'].tolist(), test_df['sentiment'].tolist()
@@ -78,12 +81,14 @@ def run_training(train_csv: Path, val_csv: Path, test_csv: Path, embeddings_bin:
     print("Loading embeddings and creating matrix...")
     word_vectors = KeyedVectors.load(str(embeddings_bin))
     embedding_dim = word_vectors.vector_size
+
     MAX_VOCAB_SIZE = 20000
     MAX_SEQUENCE_LENGTH = 200
     vectorize_layer = tf.keras.layers.TextVectorization(
         max_tokens=MAX_VOCAB_SIZE, output_mode='int', output_sequence_length=MAX_SEQUENCE_LENGTH
     )
     vectorize_layer.adapt(train_texts)
+
     vocab = vectorize_layer.get_vocabulary()
     word_index = dict(zip(vocab, range(len(vocab))))
     embedding_matrix = np.zeros((len(vocab), embedding_dim))
@@ -95,14 +100,18 @@ def run_training(train_csv: Path, val_csv: Path, test_csv: Path, embeddings_bin:
     print("Building and training the baseline model...")
     D_MODEL, DROPOUT_RATE = 300, 0.1
 
+    BATCH_SIZE = 32
+
     baseline_classifier = create_embedding_baseline_classifier(
         vocab_size=MAX_VOCAB_SIZE, d_model=D_MODEL, max_seq_len=MAX_SEQUENCE_LENGTH,
         embedding_matrix=embedding_matrix, rate=DROPOUT_RATE
     )
+
     baseline_classifier.compile(
         loss=tf.keras.losses.BinaryCrossentropy(),
         optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),
-        metrics=['accuracy', tf.keras.metrics.AUC(name='auc')]
+        metrics=['accuracy', tf.keras.metrics.AUC(name='auc')],
+        jit_compile=True
     )
 
     early_stopping = EarlyStopping(monitor='val_loss', patience=3, restore_best_weights=True)
@@ -110,44 +119,65 @@ def run_training(train_csv: Path, val_csv: Path, test_csv: Path, embeddings_bin:
     def vectorize_text_and_label(text, label):
         return vectorize_layer(text), label
 
-    train_dataset = tf.data.Dataset.from_tensor_slices((train_texts, train_labels)).map(vectorize_text_and_label).batch(
-        8)
-    val_dataset = tf.data.Dataset.from_tensor_slices((val_texts, val_labels)).map(vectorize_text_and_label).batch(8)
+    train_dataset = tf.data.Dataset.from_tensor_slices((train_texts, train_labels)) \
+        .map(vectorize_text_and_label, num_parallel_calls=tf.data.AUTOTUNE) \
+        .batch(BATCH_SIZE) \
+        .prefetch(tf.data.AUTOTUNE)
 
-    history = baseline_classifier.fit(train_dataset, epochs=20, validation_data=val_dataset, callbacks=[early_stopping], verbose=2)
+    val_dataset = tf.data.Dataset.from_tensor_slices((val_texts, val_labels)) \
+        .map(vectorize_text_and_label, num_parallel_calls=tf.data.AUTOTUNE) \
+        .batch(BATCH_SIZE) \
+        .prefetch(tf.data.AUTOTUNE)
+
+    history = baseline_classifier.fit(
+        train_dataset,
+        epochs=20,
+        validation_data=val_dataset,
+        callbacks=[early_stopping],
+        verbose=2
+    )
+
     print("Training finished.")
 
     # Artifact Saving
     print("\nSaving all artifacts to disk before logging to MLflow...")
     artifacts_dir.mkdir(parents=True, exist_ok=True)
-    model_path = artifacts_dir / "sentiment_transformer.keras"  # The model wrapper doesn't care about the filename
+    model_path = artifacts_dir / "sentiment_transformer.keras"
     vocab_path = artifacts_dir / "vectorizer_vocab.pkl"
     test_dataset_path = artifacts_dir / "test_dataset_tf"
     test_labels_path = artifacts_dir / "test_labels.pkl"
 
     baseline_classifier.save(model_path)
+
     with open(vocab_path, "wb") as f:
-        pickle.dump({'config': vectorize_layer.get_config(), 'weights': vectorize_layer.get_weights()}, f)
+        pickle.dump(vectorize_layer.get_vocabulary(), f)  # Salvando apenas o vocabulário (lista)
 
     vectorized_test_texts = vectorize_layer(test_texts)
-    test_dataset_vectorized = tf.data.Dataset.from_tensor_slices((vectorized_test_texts, np.array(test_labels))).batch(
-        32)
+    test_dataset_vectorized = tf.data.Dataset.from_tensor_slices(
+        (vectorized_test_texts, np.array(test_labels))
+    )
+    test_dataset_vectorized = test_dataset_vectorized.batch(BATCH_SIZE)
     test_dataset_vectorized.save(str(test_dataset_path))
+
     with open(test_labels_path, 'wb') as f:
         pickle.dump(np.array(test_labels), f)
 
     # MLflow Integration
     print("\nLogging to MLflow...")
     mlflow.set_experiment("sentiment-analysis-transformer")
+
     run = mlflow.start_run(run_name="embedding_baseline")
     try:
         mlflow.set_tag("model_type", "embedding_baseline")
+
         print("Logging parameters...")
         mlflow.log_params({
             "model_type": "baseline_embedding_logistic",
             "vocab_size": MAX_VOCAB_SIZE, "max_seq_len": MAX_SEQUENCE_LENGTH,
-            "embedding_dim": D_MODEL, "dropout": DROPOUT_RATE
+            "embedding_dim": D_MODEL, "dropout": DROPOUT_RATE,
+            "batch_size": BATCH_SIZE, "mixed_precision": True, "xla": True
         })
+
         print("Logging metrics...")
         best_epoch_index = np.argmin(history.history['val_loss'])
         final_metrics = {
@@ -156,10 +186,12 @@ def run_training(train_csv: Path, val_csv: Path, test_csv: Path, embeddings_bin:
             "val_auc": history.history['val_auc'][best_epoch_index]
         }
         mlflow.log_metrics(final_metrics)
+
         artifacts_for_mlflow = {
             "transformer_model": str(model_path),
             "vectorizer_vocab": str(vocab_path)
         }
+
         print("Logging model to MLflow Registry...")
         mlflow.pyfunc.log_model(
             name="sentiment_baseline",
@@ -169,6 +201,7 @@ def run_training(train_csv: Path, val_csv: Path, test_csv: Path, embeddings_bin:
             registered_model_name=f"{settings.MODEL_NAME_REGISTRY}-baseline"
         )
         print(f"Model '{settings.MODEL_NAME_REGISTRY}-baseline' registered successfully in run {run.info.run_id}")
+
     finally:
         print("Finalizing MLflow run...")
         mlflow.end_run()
@@ -184,7 +217,9 @@ if __name__ == "__main__":
     parser.add_argument("--test-csv", type=str, required=True, help="Path to the test CSV file.")
     parser.add_argument("--embeddings-bin", type=str, required=True, help="Path to the binary embeddings file.")
     parser.add_argument("--artifacts-dir", type=str, required=True, help="Directory to save output artifacts.")
+
     args = parser.parse_args()
+
     run_training(
         train_csv=Path(args.train_csv),
         val_csv=Path(args.val_csv),
