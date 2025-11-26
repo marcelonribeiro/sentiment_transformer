@@ -24,13 +24,6 @@ services:
     volumes:
       - airflow_data:/app/airflow
       - mlruns_data:/app/mlruns
-      - dvc_storage:/dvc-storage
-      - dvc_cache:/app/.dvc/cache
-#    healthcheck:
-#      test: ["CMD-SHELL", "airflow jobs check --job-type SchedulerJob --local"]
-#      interval: 10s
-#      timeout: 10s
-#      retries: 5
     restart: always
 
   mlflow-server:
@@ -92,5 +85,3 @@ volumes:
   pgdata_app:
   airflow_data:
   mlruns_data:
-  dvc_storage:
-  dvc_cache:
